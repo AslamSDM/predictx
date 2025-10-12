@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET() {
   try {
@@ -59,8 +60,24 @@ export async function GET() {
       },
     });
 
+    // Define type for trader with predictions
+    type TraderWithPredictions = Prisma.UserGetPayload<{
+      include: {
+        predictions: {
+          where: {
+            status: { in: ["RESOLVED_YES", "RESOLVED_NO"] };
+          };
+        };
+        _count: {
+          select: {
+            predictions: true;
+          };
+        };
+      };
+    }>;
+
     // Calculate success rates for top traders
-    const tradersWithStats = topTraders.map((trader) => {
+    const tradersWithStats = topTraders.map((trader: TraderWithPredictions) => {
       const resolvedPredictions = trader.predictions;
       const successfulPredictions = resolvedPredictions.filter(
         (p) => p.status === "RESOLVED_YES"
