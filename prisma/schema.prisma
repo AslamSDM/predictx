@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id            String   @id @default(cuid())
+    walletAddress String   @unique
+    username      String?
+    avatar        String?
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    // Relations
+    predictions Prediction[]
+    bets        Bet[]
+
+    @@map("users")
+}
+
+model Prediction {
+    id          String           @id @default(cuid())
+    title       String
+    description String
+    tradeImage  String? // URL to uploaded trade screenshot
+    orderId     String? // Optional order ID from trading platform
+    targetPrice Decimal? // Take profit price
+    entryPrice  Decimal? // Entry price
+    symbol      String // Trading pair (e.g., BTC/USD)
+    direction   TradeDirection // LONG or SHORT
+    status      PredictionStatus @default(ACTIVE)
+
+    // Betting pool
+    totalPool Decimal @default(0)
+    yesPool   Decimal @default(0)
+    noPool    Decimal @default(0)
+
+    // Timing
+    expiresAt  DateTime
+    resolvedAt DateTime?
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+
+    // Relations
+    creatorId String
+    creator   User   @relation(fields: [creatorId], references: [id])
+    bets      Bet[]
+
+    @@map("predictions")
+}
+
+model Bet {
+    id           String      @id @default(cuid())
+    amount       Decimal
+    position     BetPosition // YES or NO
+    odds         Decimal // Odds at the time of betting
+    potentialWin Decimal // Potential winnings
+    status       BetStatus   @default(ACTIVE)
+
+    // Timing
+    placedAt DateTime @default(now())
+
+    // Relations
+    userId       String
+    user         User       @relation(fields: [userId], references: [id])
+    predictionId String
+    prediction   Prediction @relation(fields: [predictionId], references: [id])
+
+    @@map("bets")
+}
+
+enum TradeDirection {
+    LONG
+    SHORT
+}
+
+enum PredictionStatus {
+    ACTIVE
+    RESOLVED_YES
+    RESOLVED_NO
+    EXPIRED
+    CANCELLED
+}
+
+enum BetPosition {
+    YES
+    NO
+}
+
+enum BetStatus {
+    ACTIVE
+    WON
+    LOST
+    REFUNDED
+}

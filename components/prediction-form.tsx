@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, type ChangeEvent, type FormEvent } from "react"
+import Image from "next/image"
 
 export default function PredictionForm() {
   const [title, setTitle] = useState("")
@@ -88,11 +89,14 @@ export default function PredictionForm() {
         </label>
         <input id="image" type="file" accept="image/*" onChange={onFile} className="block text-sm text-foreground/70" />
         {preview ? (
-          <img
-            src={preview || "/placeholder.svg"}
-            alt="Preview"
-            className="mt-2 w-full rounded-md border border-border"
-          />
+          <div className="mt-2 relative w-full h-48">
+            <Image
+              src={preview}
+              alt="Preview"
+              fill
+              className="rounded-md border border-border object-cover"
+            />
+          </div>
         ) : (
           <div className="text-xs text-foreground/50">PNG, JPG up to a few MB.</div>
         )}
