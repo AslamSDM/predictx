@@ -9,6 +9,7 @@ const infoClient = new hl.InfoClient({
 
 export const getAllOpenOrders = async (userAddress: string) => {
     const openOrders = await infoClient.openOrders({ user: userAddress });
+    return openOrders;
 }
 
 type HistoryProps = {
