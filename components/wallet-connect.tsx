@@ -1,44 +1,104 @@
-"use client"
+'use client';
 
-import { useState } from "react"
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { Button } from '@/components/ui/button';
 
-export default function WalletConnect() {
-  const [connected, setConnected] = useState(false)
-  const [address, setAddress] = useState<string | null>(null)
-
-  const onConnect = () => {
-    // Stub: replace with real wallet integration later
-    setConnected(true)
-    setAddress("0x8F...C7a")
-  }
-
-  const onDisconnect = () => {
-    setConnected(false)
-    setAddress(null)
-  }
-
+export function CustomConnectButton() {
   return (
-    <div className="flex items-center gap-2">
-      {connected && address ? (
-        <>
-          <span className="hidden sm:inline text-xs text-foreground/70">{address}</span>
-          <button
-            onClick={onDisconnect}
-            className="px-3 py-2 text-xs md:text-sm rounded-md bg-accent text-accent-foreground glow-accent"
-            aria-label="Disconnect wallet"
+    <ConnectButton.Custom>
+      {({
+        account,
+        chain,
+        openAccountModal,
+        openChainModal,
+        openConnectModal,
+        authenticationStatus,
+        mounted,
+      }) => {
+        // Note: If your app doesn't use authentication, you
+        // can remove all 'authenticationStatus' checks
+        const ready = mounted && authenticationStatus !== 'loading';
+        const connected =
+          ready &&
+          account &&
+          chain &&
+          (!authenticationStatus ||
+            authenticationStatus === 'authenticated');
+
+        return (
+          <div
+            {...(!ready && {
+              'aria-hidden': true,
+              'style': {
+                opacity: 0,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              },
+            })}
           >
-            Disconnect
-          </button>
-        </>
-      ) : (
-        <button
-          onClick={onConnect}
-          className="px-3 py-2 text-xs md:text-sm rounded-md bg-primary text-primary-foreground glow"
-          aria-label="Connect wallet"
-        >
-          Connect Wallet
-        </button>
-      )}
-    </div>
-  )
+            {(() => {
+              if (!connected) {
+                return (
+                  <Button
+                    onClick={openConnectModal}
+                    size="lg"
+                    className="bg-gradient-to-r from-[#5bd1d7] to-[#2ab4ba] hover:from-[#6bdfe5] hover:to-[#3cc5c9] text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Connect Wallet
+                  </Button>
+                );
+              }
+
+              if (chain.unsupported) {
+                return (
+                  <Button onClick={openChainModal} variant="destructive">
+                    Wrong network
+                  </Button>
+                );
+              }
+
+              return (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={openChainModal}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    {chain.hasIcon && (
+                      <div
+                        style={{
+                          background: chain.iconBackground,
+                          width: 12,
+                          height: 12,
+                          borderRadius: 999,
+                          overflow: 'hidden',
+                          marginRight: 4,
+                        }}
+                      >
+                        {chain.iconUrl && (
+                          <img
+                            alt={chain.name ?? 'Chain icon'}
+                            src={chain.iconUrl}
+                            style={{ width: 12, height: 12 }}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {chain.name}
+                  </Button>
+
+                  <Button onClick={openAccountModal} variant="outline">
+                    {account.displayName}
+                    {account.displayBalance
+                      ? ` (${account.displayBalance})`
+                      : ''}
+                  </Button>
+                </div>
+              );
+            })()}
+          </div>
+        );
+      }}
+    </ConnectButton.Custom>
+  );
 }

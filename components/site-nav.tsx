@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import WalletConnect from "./wallet-connect"
+import { CustomConnectButton } from "./wallet-connect"
 
 export default function SiteNav() {
   const pathname = usePathname()
@@ -36,7 +36,7 @@ export default function SiteNav() {
           {link("/create", "Create")}
         </div>
         <div className="flex items-center gap-2">
-          <WalletConnect />
+          <CustomConnectButton />
         </div>
       </nav>
     </header>

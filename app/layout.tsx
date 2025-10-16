@@ -5,6 +5,8 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Orbitron } from "next/font/google"
 import { Suspense } from "react"
+import { Providers } from "./providers";
+import '@rainbow-me/rainbowkit/styles.css';
 import "./globals.css"
 
 const orbitron = Orbitron({
@@ -26,8 +28,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark antialiased ${orbitron.variable} ${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="font-sans">
-        <Suspense fallback={null}>{children}</Suspense>
-        <Analytics />
+        <Providers>
+          <Suspense fallback={null}>{children}</Suspense>
+          <Analytics />
+        </Providers>
       </body>
     </html>
   )
