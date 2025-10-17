@@ -62,6 +62,7 @@ contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
         string memory _metadataURI
     ) external override returns (address) {
         require(_endTime > block.timestamp, "End must be future");
+        require(!(_endTime - block.timestamp > 2 days), "End must be less than 2 days from now");
         bytes32 feedId = _resolvePythFeedId(_pairName);
 
         Prediction newPrediction = new Prediction(

@@ -200,14 +200,14 @@ contract Prediction is IPrediction, ReentrancyGuard {
         // Step 1: Update Pyth feeds and get the contract instance
         PythStructs.PriceFeed[] memory priceFeeds = _update_and_validate(_highPriceUpdateData, _lowPriceUpdateData);
         if(direction == Direction.Up){
-            if(_normalizeTo8(uint256(int256(priceFeeds[0].price.price)), priceFeeds[0].price.expo) > targetPrice){
+            if(_normalizeTo8(uint256(int256(priceFeeds[0].price.price)), priceFeeds[0].price.expo) >= targetPrice){
                 outcome = Outcome.Yes;
             } else {
                 outcome = Outcome.No;
             }
         }
         if(direction == Direction.Down){
-            if(_normalizeTo8(uint256(int256(priceFeeds[0].price.price)), priceFeeds[0].price.expo) < targetPrice){
+            if(_normalizeTo8(uint256(int256(priceFeeds[1].price.price)), priceFeeds[1].price.expo) <= targetPrice){
                 outcome = Outcome.Yes;
             } else {
                 outcome = Outcome.No;
@@ -269,7 +269,7 @@ contract Prediction is IPrediction, ReentrancyGuard {
         totalFees = (totalPool * feePercentage) / 100;
 
         if (totalFees > 0) {
-            uint256 creatorFee = totalFees / 2;
+            uint256 creatorFee = outcome == Outcome.Yes ? (totalFees / 2) : 0; // fees for the creator if and only if the outcome is yes
             uint256 protocolFee = totalFees - creatorFee; // Avoids dust from division
 
             if (creatorFee > 0) {
