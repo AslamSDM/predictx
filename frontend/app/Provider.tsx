@@ -1,6 +1,14 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
+import { useUserSync } from "@/lib/hooks/useUserSync";
+
+// Inner component that uses the user sync hook
+function UserSyncProvider({ children }: { children: React.ReactNode }) {
+  // This will automatically sync user with database when logged in
+  useUserSync();
+  return <>{children}</>;
+}
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId =
@@ -20,7 +28,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         loginMethods: ["email", "telegram"],
       }}
     >
-      {children}
+      <UserSyncProvider>{children}</UserSyncProvider>
     </PrivyProvider>
   );
 }
