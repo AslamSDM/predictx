@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUserStore } from "@/lib/store";
-import { Clock, TrendingUp, TrendingDown, DollarSign, AlertCircle, CheckCircle, Target } from "lucide-react";
+import {
+  Clock,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  AlertCircle,
+  CheckCircle,
+  Target,
+} from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PredictionWithRelations } from "@/lib/types";
@@ -14,13 +22,14 @@ export default function ResolvePage() {
   const [predictions, setPredictions] = useState<PredictionWithRelations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const [selectedPrediction, setSelectedPrediction] = useState<PredictionWithRelations | null>(null);
+  const [selectedPrediction, setSelectedPrediction] =
+    useState<PredictionWithRelations | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
 
   // Fetch expired predictions that need resolution
   useEffect(() => {
     fetchExpiredPredictions();
-    
+
     // Refresh every 30 seconds
     const interval = setInterval(fetchExpiredPredictions, 30000);
     return () => clearInterval(interval);
@@ -41,14 +50,17 @@ export default function ResolvePage() {
     }
   };
 
-  const handleResolve = async (prediction: PredictionWithRelations, outcome: "YES" | "NO") => {
+  const handleResolve = async (
+    prediction: PredictionWithRelations,
+    outcome: "YES" | "NO"
+  ) => {
     if (!user) {
       alert("Please login to resolve predictions");
       return;
     }
 
     setResolvingId(prediction.id);
-    
+
     try {
       const res = await fetch(`/api/predictions/${prediction.id}/resolve`, {
         method: "POST",
@@ -62,12 +74,12 @@ export default function ResolvePage() {
       if (res.ok) {
         const resolved = await res.json();
         console.log("✅ Prediction resolved:", resolved);
-        
+
         // Remove from list
-        setPredictions(prev => prev.filter(p => p.id !== prediction.id));
+        setPredictions((prev) => prev.filter((p) => p.id !== prediction.id));
         setShowResolveModal(false);
         setSelectedPrediction(null);
-        
+
         // Show success message
         alert(`Successfully resolved! You earned a resolution fee! 🎉`);
       } else {
@@ -94,7 +106,8 @@ export default function ResolvePage() {
 
   const formatAmount = (amount: number | { toString: () => string } | null) => {
     if (!amount) return "0";
-    const num = typeof amount === "number" ? amount : parseFloat(amount.toString());
+    const num =
+      typeof amount === "number" ? amount : parseFloat(amount.toString());
     return num.toLocaleString();
   };
 
@@ -104,14 +117,19 @@ export default function ResolvePage() {
     const diff = now.getTime() - expiry.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     return "Just now";
   };
 
-  const calculateResolutionFee = (totalPool: number | { toString: () => string }) => {
-    const pool = typeof totalPool === "number" ? totalPool : parseFloat(totalPool.toString());
+  const calculateResolutionFee = (
+    totalPool: number | { toString: () => string }
+  ) => {
+    const pool =
+      typeof totalPool === "number"
+        ? totalPool
+        : parseFloat(totalPool.toString());
     // 2% resolution fee
     return (pool * 0.02).toFixed(2);
   };
@@ -126,7 +144,8 @@ export default function ResolvePage() {
             Resolve Predictions
           </h1>
           <p className="text-muted-foreground text-lg">
-            Help resolve expired predictions and earn a 2% fee from the total pool
+            Help resolve expired predictions and earn a 2% fee from the total
+            pool
           </p>
           {!authenticated && (
             <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex items-center gap-3">
@@ -143,8 +162,12 @@ export default function ResolvePage() {
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pending Resolution</p>
-                <p className="text-2xl font-bold text-primary">{predictions.length}</p>
+                <p className="text-sm text-muted-foreground">
+                  Pending Resolution
+                </p>
+                <p className="text-2xl font-bold text-primary">
+                  {predictions.length}
+                </p>
               </div>
               <Clock className="w-8 h-8 text-primary opacity-50" />
             </div>
@@ -152,9 +175,21 @@ export default function ResolvePage() {
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Pool Value</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Pool Value
+                </p>
                 <p className="text-2xl font-bold">
-                  ${formatAmount(predictions.reduce((sum, p) => sum + (typeof p.totalPool === 'number' ? p.totalPool : parseFloat(p.totalPool.toString())), 0))}
+                  $
+                  {formatAmount(
+                    predictions.reduce(
+                      (sum, p) =>
+                        sum +
+                        (typeof p.totalPool === "number"
+                          ? p.totalPool
+                          : parseFloat(p.totalPool.toString())),
+                      0
+                    )
+                  )}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-green-500 opacity-50" />
@@ -165,10 +200,16 @@ export default function ResolvePage() {
               <div>
                 <p className="text-sm text-muted-foreground">Potential Fees</p>
                 <p className="text-2xl font-bold text-green-500">
-                  ${formatAmount(predictions.reduce((sum, p) => {
-                    const pool = typeof p.totalPool === 'number' ? p.totalPool : parseFloat(p.totalPool.toString());
-                    return sum + (pool * 0.02);
-                  }, 0))}
+                  $
+                  {formatAmount(
+                    predictions.reduce((sum, p) => {
+                      const pool =
+                        typeof p.totalPool === "number"
+                          ? p.totalPool
+                          : parseFloat(p.totalPool.toString());
+                      return sum + pool * 0.02;
+                    }, 0)
+                  )}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500 opacity-50" />
@@ -180,7 +221,9 @@ export default function ResolvePage() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading expired predictions...</p>
+            <p className="text-muted-foreground">
+              Loading expired predictions...
+            </p>
           </div>
         ) : predictions.length === 0 ? (
           <div className="text-center py-16 bg-card rounded-xl border border-border">
@@ -245,7 +288,9 @@ export default function ResolvePage() {
                             Expired {getTimeExpired(prediction.expiresAt)}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold mb-2">{prediction.title}</h3>
+                        <h3 className="text-xl font-bold mb-2">
+                          {prediction.title}
+                        </h3>
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                           {prediction.description}
                         </p>
@@ -295,17 +340,25 @@ export default function ResolvePage() {
                     {/* Pool Distribution */}
                     <div className="bg-background/50 rounded-lg p-3 mb-4">
                       <div className="flex items-center justify-between text-xs mb-2">
-                        <span className="text-muted-foreground">Pool Distribution</span>
-                        <span className="font-medium">{prediction._count.bets} bets placed</span>
+                        <span className="text-muted-foreground">
+                          Pool Distribution
+                        </span>
+                        <span className="font-medium">
+                          {prediction._count.bets} bets placed
+                        </span>
                       </div>
                       <div className="flex gap-2">
                         <div className="flex-1 bg-green-500/20 text-green-600 dark:text-green-400 rounded px-3 py-2 text-center">
                           <div className="text-xs font-medium">YES</div>
-                          <div className="text-sm font-bold">${formatAmount(prediction.yesPool)}</div>
+                          <div className="text-sm font-bold">
+                            ${formatAmount(prediction.yesPool)}
+                          </div>
                         </div>
                         <div className="flex-1 bg-red-500/20 text-red-600 dark:text-red-400 rounded px-3 py-2 text-center">
                           <div className="text-xs font-medium">NO</div>
-                          <div className="text-sm font-bold">${formatAmount(prediction.noPool)}</div>
+                          <div className="text-sm font-bold">
+                            ${formatAmount(prediction.noPool)}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -332,7 +385,8 @@ export default function ResolvePage() {
                       ) : (
                         <>
                           <CheckCircle className="w-5 h-5" />
-                          Resolve & Earn ${calculateResolutionFee(prediction.totalPool)}
+                          Resolve & Earn $
+                          {calculateResolutionFee(prediction.totalPool)}
                         </>
                       )}
                     </button>
@@ -371,7 +425,9 @@ export default function ResolvePage() {
               <div className="bg-card border-2 border-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
                 {/* Header */}
                 <div className="p-6 border-b border-border bg-gradient-to-br from-primary/10 to-accent/30">
-                  <h2 className="text-2xl font-bold mb-2">Resolve Prediction</h2>
+                  <h2 className="text-2xl font-bold mb-2">
+                    Resolve Prediction
+                  </h2>
                   <p className="text-sm text-muted-foreground">
                     Choose the outcome based on whether the target was reached
                   </p>
@@ -380,23 +436,31 @@ export default function ResolvePage() {
                 {/* Content */}
                 <div className="p-6">
                   <div className="mb-6">
-                    <h3 className="font-bold text-lg mb-2">{selectedPrediction.title}</h3>
+                    <h3 className="font-bold text-lg mb-2">
+                      {selectedPrediction.title}
+                    </h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                       <span>{selectedPrediction.symbol}</span>
                       <span>•</span>
                       <span>{selectedPrediction.direction}</span>
                       <span>•</span>
                       <span>
-                        ${formatAmount(selectedPrediction.entryPrice)} → ${formatAmount(selectedPrediction.targetPrice)}
+                        ${formatAmount(selectedPrediction.entryPrice)} → $
+                        {formatAmount(selectedPrediction.targetPrice)}
                       </span>
                     </div>
                     <div className="bg-background/50 rounded-lg p-4">
                       <div className="text-sm mb-2">
-                        <span className="text-muted-foreground">Total Pool:</span>
-                        <span className="font-bold ml-2">${formatAmount(selectedPrediction.totalPool)}</span>
+                        <span className="text-muted-foreground">
+                          Total Pool:
+                        </span>
+                        <span className="font-bold ml-2">
+                          ${formatAmount(selectedPrediction.totalPool)}
+                        </span>
                       </div>
                       <div className="text-sm text-green-600 dark:text-green-400 font-bold">
-                        Your Resolution Fee: ${calculateResolutionFee(selectedPrediction.totalPool)}
+                        Your Resolution Fee: $
+                        {calculateResolutionFee(selectedPrediction.totalPool)}
                       </div>
                     </div>
                   </div>

@@ -4,11 +4,12 @@ import { Decimal } from "@prisma/client/runtime/library";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: predictionId } = await params;
+
     const { outcome, resolvedBy } = await request.json();
-    const predictionId = params.id;
 
     if (!outcome || !resolvedBy) {
       return NextResponse.json(
@@ -90,8 +91,10 @@ export async function POST(
 
     // Update bet statuses and calculate winnings
     const winningPosition = outcome;
-    const winningPool = outcome === "YES" ? prediction.yesPool : prediction.noPool;
-    const losingPool = outcome === "YES" ? prediction.noPool : prediction.yesPool;
+    const winningPool =
+      outcome === "YES" ? prediction.yesPool : prediction.noPool;
+    const losingPool =
+      outcome === "YES" ? prediction.noPool : prediction.yesPool;
 
     if (winningPool.gt(0)) {
       // Calculate winnings for each winning bet
@@ -142,8 +145,10 @@ export async function POST(
       resolutionFee: resolutionFee.toNumber(),
       outcome,
       resolvedBy,
-      winningBets: prediction.bets.filter((b) => b.position === winningPosition).length,
-      losingBets: prediction.bets.filter((b) => b.position !== winningPosition).length,
+      winningBets: prediction.bets.filter((b) => b.position === winningPosition)
+        .length,
+      losingBets: prediction.bets.filter((b) => b.position !== winningPosition)
+        .length,
     });
   } catch (error) {
     console.error("Error resolving prediction:", error);

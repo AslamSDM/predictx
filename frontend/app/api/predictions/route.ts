@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     const whereClause: Prisma.PredictionWhereInput = {};
-    
+
     // Handle special "expired" status
     if (status === "expired") {
       whereClause.status = "ACTIVE";
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     } else if (status) {
       whereClause.status = status as any;
     }
-    
+
     if (creatorId) whereClause.creatorId = creatorId;
 
     const [predictions, total] = await Promise.all([
