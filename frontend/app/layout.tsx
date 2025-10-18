@@ -7,6 +7,7 @@ import { Orbitron } from "next/font/google";
 import { Suspense } from "react";
 import InstallBanner from "@/components/install-banner";
 import "./globals.css";
+import Providers from "./Provider";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -66,7 +67,9 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="font-sans">
-        <Suspense fallback={null}>{children}</Suspense>
+        <Providers>
+          <Suspense fallback={null}>{children}</Suspense>
+        </Providers>
         <InstallBanner />
         <Analytics />
         <script

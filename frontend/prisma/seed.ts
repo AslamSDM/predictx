@@ -58,6 +58,7 @@ async function main() {
         totalPool: new Decimal("2500"),
         yesPool: new Decimal("1500"),
         noPool: new Decimal("1000"),
+        address: "",
       },
     }),
     prisma.prediction.create({
@@ -74,10 +75,12 @@ async function main() {
         totalPool: new Decimal("1800"),
         yesPool: new Decimal("800"),
         noPool: new Decimal("1000"),
+        address: "",
       },
     }),
     prisma.prediction.create({
       data: {
+        address: "",
         title: "AAPL earnings play - expecting beat",
         description:
           "Strong iPhone sales data and services growth. Expecting 5% move up after earnings.",
@@ -95,6 +98,7 @@ async function main() {
     prisma.prediction.create({
       data: {
         title: "SOL breakout above resistance",
+        address: "",
         description:
           "Solana showing strong volume and breaking key resistance. Target $180.",
         symbol: "SOL/USD",

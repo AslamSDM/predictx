@@ -24,6 +24,8 @@ const DUMMY_PREDICTIONS: PredictionWithRelations[] = [
     status: "ACTIVE",
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     createdAt: new Date(),
+    address: "",
+
     updatedAt: new Date(),
     resolvedAt: null,
     totalPool: 2500,
@@ -61,6 +63,8 @@ const DUMMY_PREDICTIONS: PredictionWithRelations[] = [
     resolvedAt: null,
     totalPool: 1800,
     yesPool: 800,
+    address: "",
+
     noPool: 1000,
     creatorId: "user2",
     creator: {
@@ -95,6 +99,8 @@ const DUMMY_PREDICTIONS: PredictionWithRelations[] = [
     totalPool: 3200,
     yesPool: 2000,
     noPool: 1200,
+    address: "",
+
     creatorId: "user3",
     creator: {
       id: "user3",
@@ -125,6 +131,8 @@ const DUMMY_PREDICTIONS: PredictionWithRelations[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     resolvedAt: null,
+    address: "",
+
     totalPool: 5500,
     yesPool: 3200,
     noPool: 2300,
@@ -149,6 +157,8 @@ const DUMMY_PREDICTIONS: PredictionWithRelations[] = [
       "News catalyst expected. Strong accumulation pattern visible. Breaking out of long consolidation. On-chain metrics showing whale accumulation and reduced exchange supply. Historical pattern suggests explosive move imminent with volume confirmation building.",
     symbol: "XRP/USD",
     direction: "LONG",
+    address: "",
+
     entryPrice: 0.62,
     targetPrice: 0.75,
     tradeImage: "/images.jpg",
@@ -183,6 +193,8 @@ const DUMMY_PREDICTIONS: PredictionWithRelations[] = [
     symbol: "TSLA",
     direction: "LONG",
     entryPrice: 242.3,
+    address: "",
+
     targetPrice: 255.0,
     tradeImage: "/images.jpg",
     orderId: "TSLA-LONG-006",

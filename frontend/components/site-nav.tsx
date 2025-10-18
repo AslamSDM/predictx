@@ -1,25 +1,27 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import WalletConnect from "./wallet-connect"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import WalletConnect from "./wallet-connect";
 
 export default function SiteNav() {
-  const pathname = usePathname()
+  const pathname = usePathname();
   const link = (href: string, label: string) => (
     <Link
       key={href}
       href={href}
       className={cn(
         "px-3 py-2 text-sm md:text-base rounded-md transition-colors",
-        pathname === href ? "text-primary" : "text-foreground/80 hover:text-primary",
+        pathname === href
+          ? "text-primary"
+          : "text-foreground/80 hover:text-primary"
       )}
       aria-current={pathname === href ? "page" : undefined}
     >
       {label}
     </Link>
-  )
+  );
 
   return (
     <header className="w-full sticky top-0 z-50 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
@@ -40,5 +42,5 @@ export default function SiteNav() {
         </div>
       </nav>
     </header>
-  )
+  );
 }

@@ -1,34 +1,44 @@
-import Image from "next/image"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
+import Image from "next/image";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 type Prediction = {
-  id: string
-  trader: string
-  title: string
-  orderId?: string
-  image?: string
-  expiresIn: string
-  yesOdds: number // 0 to 1
-  totalPool: string
-  status?: "open" | "resolved"
-}
+  id: string;
+  trader: string;
+  title: string;
+  orderId?: string;
+  image?: string;
+  expiresIn: string;
+  yesOdds: number; // 0 to 1
+  totalPool: string;
+  status?: "open" | "resolved";
+};
 
 export default function PredictionCard({
   prediction,
   className,
 }: {
-  prediction: Prediction
-  className?: string
+  prediction: Prediction;
+  className?: string;
 }) {
-  const { id, trader, title, orderId, image, expiresIn, yesOdds, totalPool, status = "open" } = prediction
+  const {
+    id,
+    trader,
+    title,
+    orderId,
+    image,
+    expiresIn,
+    yesOdds,
+    totalPool,
+    status = "open",
+  } = prediction;
 
   return (
     <article
       className={cn(
         "panel p-3 md:p-4 flex flex-col gap-3 hover:bg-card transition-colors",
         status === "open" ? "glow" : "",
-        className,
+        className
       )}
     >
       <div className="flex items-center justify-between">
@@ -39,7 +49,9 @@ export default function PredictionCard({
           <span
             className={cn(
               "px-2 py-0.5 rounded-sm",
-              status === "open" ? "bg-primary/10 text-primary" : "bg-foreground/10 text-foreground/90",
+              status === "open"
+                ? "bg-primary/10 text-primary"
+                : "bg-foreground/10 text-foreground/90"
             )}
           >
             {status === "open" ? "Open" : "Resolved"}
@@ -94,5 +106,5 @@ export default function PredictionCard({
         </Link>
       </div>
     </article>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import Link from "next/link"
-import SiteNav from "@/components/site-nav"
+import Link from "next/link";
+import SiteNav from "@/components/site-nav";
 
 export default function Page() {
   return (
@@ -9,14 +9,19 @@ export default function Page() {
         <div className="panel glow p-6 md:p-10">
           <h1 className="font-serif text-3xl md:text-5xl text-balance">
             Bet on a trader’s individual call:
-            <span className="block text-primary mt-2">Will it hit TP or not?</span>
+            <span className="block text-primary mt-2">
+              Will it hit TP or not?
+            </span>
           </h1>
           <p className="mt-4 text-foreground/70 text-pretty leading-relaxed">
-            Post a trade image or order ID, launch a prediction, and let the market decide. Connect your wallet to
-            participate.
+            Post a trade image or order ID, launch a prediction, and let the
+            market decide. Connect your wallet to participate.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <Link href="/create" className="px-4 py-3 rounded-md bg-primary text-primary-foreground text-center glow">
+            <Link
+              href="/create"
+              className="px-4 py-3 rounded-md bg-primary text-primary-foreground text-center glow"
+            >
               Create a Prediction
             </Link>
             <Link
@@ -32,21 +37,25 @@ export default function Page() {
           <div className="panel p-4">
             <h3 className="font-serif text-lg">Connect</h3>
             <p className="text-sm text-foreground/70 mt-1">
-              Link your wallet and profile. Privacy-first, your keys stay with you.
+              Link your wallet and profile. Privacy-first, your keys stay with
+              you.
             </p>
           </div>
           <div className="panel p-4">
             <h3 className="font-serif text-lg">Launch</h3>
             <p className="text-sm text-foreground/70 mt-1">
-              Use an image or order ID and set expiration. Define your market’s rules.
+              Use an image or order ID and set expiration. Define your market’s
+              rules.
             </p>
           </div>
           <div className="panel p-4">
             <h3 className="font-serif text-lg">Participate</h3>
-            <p className="text-sm text-foreground/70 mt-1">Back TP or No-TP with stakes. Pools settle transparently.</p>
+            <p className="text-sm text-foreground/70 mt-1">
+              Back TP or No-TP with stakes. Pools settle transparently.
+            </p>
           </div>
         </div>
       </section>
     </main>
-  )
+  );
 }
