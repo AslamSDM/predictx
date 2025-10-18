@@ -186,7 +186,7 @@ export default function DiscoverPage() {
         </div>
 
         {/* Action Buttons (desktop only - alternative to swipe) */}
-        <div className="!hidden md:!flex md:flex-col space-y-4 mt-6 flex-shrink-0">
+        <div className="hidden lg:!flex lg:flex-col space-y-4 mt-6 flex-shrink-0">
           {/* Up/Down Navigation */}
           <div className="flex justify-center">
             <button
