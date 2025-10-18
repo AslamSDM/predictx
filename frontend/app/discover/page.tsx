@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import SiteNav from "@/components/site-nav";
 import SwipeCard from "@/components/swipe-card";
 import BetModal from "@/components/bet-modal";
+import LoginModal from "@/components/login-modal";
 import { predictionApi, betApi } from "@/lib/api";
 import type { PredictionWithRelations, BetPosition } from "@/lib/types";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 // Dummy data for testing without database
 const DUMMY_PREDICTIONS: PredictionWithRelations[] = [
@@ -223,11 +225,13 @@ const DUMMY_PREDICTIONS: PredictionWithRelations[] = [
 ];
 
 export default function DiscoverPage() {
+  const { authenticated, address } = useAuth();
   const [predictions, setPredictions] =
     useState<PredictionWithRelations[]>(DUMMY_PREDICTIONS);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [selectedPrediction, setSelectedPrediction] =
     useState<PredictionWithRelations | null>(null);
   const [betPosition, setBetPosition] = useState<BetPosition>("YES");
@@ -268,6 +272,12 @@ export default function DiscoverPage() {
 
   const handleSwipeLeft = (prediction: PredictionWithRelations) => {
     // Swipe left = NO
+    // Check if user is authenticated
+    if (!authenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
     setSelectedPrediction(prediction);
     setBetPosition("NO");
     setShowModal(true);
@@ -276,6 +286,12 @@ export default function DiscoverPage() {
 
   const handleSwipeRight = (prediction: PredictionWithRelations) => {
     // Swipe right = YES
+    // Check if user is authenticated
+    if (!authenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
     setSelectedPrediction(prediction);
     setBetPosition("YES");
     setShowModal(true);
@@ -322,9 +338,10 @@ export default function DiscoverPage() {
       }
 
       // Real API call for actual data
-      const walletAddress = localStorage.getItem("walletAddress");
+      const walletAddress = address;
       if (!walletAddress) {
-        alert("Please connect your wallet first");
+        alert("Please login first");
+        setShowLoginModal(true);
         return;
       }
 
@@ -513,6 +530,12 @@ export default function DiscoverPage() {
           onConfirm={handlePlaceBet}
         />
       )}
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
     </main>
   );
 }
