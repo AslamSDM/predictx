@@ -5,7 +5,7 @@ pragma solidity ^0.8.20;
 /// @author PredictX
 interface IPrediction {
     /// @notice Prediction status lifecycle
-    enum Status { Open, Resolved, Inactive }
+    enum Status { Open, Resolved}
 
     /// @notice Final outcome of the prediction
     enum Outcome { Undetermined, Yes, No }
@@ -47,8 +47,6 @@ interface IPrediction {
     function vote(bool _supportsOutcome, uint256 amount) external;
     function resolvePrediction(bytes[] calldata _highPriceUpdateData, bytes[] calldata _lowPriceUpdateData,bytes[] calldata price_update) external payable;
     function claimWinnings() external;
-    function manualOverrideResolve() external;
-    function claimRefund() external;
 }
 
 
