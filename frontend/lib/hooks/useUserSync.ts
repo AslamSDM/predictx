@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useAuth } from "./useAuth";
 import { useUserStore } from "../store";
+import { usePrivy } from "@privy-io/react-auth";
 
 /**
  * Hook to automatically sync user with database when logged in
@@ -11,22 +12,40 @@ import { useUserStore } from "../store";
  */
 export function useUserSync() {
   const { authenticated, address, ready } = useAuth();
+  const { user: privyUser } = usePrivy();
   const { user, fetchOrCreateUser, clearUser } = useUserStore();
 
   useEffect(() => {
     // Only proceed if Privy is ready
-    if (!ready) return;
-
-    // If authenticated and has address, sync with database
-    if (authenticated && address) {
-      fetchOrCreateUser(address).catch((error) => {
-        console.error("Failed to sync user:", error);
-      });
-    } else {
-      // Clear user from store if not authenticated
+    if (!ready || !authenticated) {
       clearUser();
+      return;
     }
-  }, [authenticated, address, ready]);
+
+    // For OAuth users without embedded wallet yet, use Privy user ID as temporary identifier
+    const identifier = address || privyUser?.id;
+
+    if (!identifier) {
+      console.warn("No wallet address or user ID available yet");
+      return;
+    }
+
+    console.log("🔄 Syncing user with database:", {
+      authenticated,
+      address,
+      privyUserId: privyUser?.id,
+      identifier,
+    });
+
+    // Sync with database
+    fetchOrCreateUser(identifier)
+      .then((user) => {
+        console.log("✅ User synced successfully:", user);
+      })
+      .catch((error) => {
+        console.error("❌ Failed to sync user:", error);
+      });
+  }, [authenticated, address, privyUser?.id, ready]);
 
   return {
     user,
