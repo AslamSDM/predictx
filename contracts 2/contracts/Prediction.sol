@@ -21,7 +21,7 @@ contract Prediction is IPrediction, ReentrancyGuard {
 
     /// @notice The fee percentage applied to the losing pool at resolution
     /// @dev e.g., 5 for 5%
-    uint256 public immutable feePercentage;
+    uint256 public immutable feePercentage; // 5% 2% for protocol 2% for creator 1% for liquidator
 
     /// @notice ERC20 token used for staking in this prediction
     address public immutable stakeToken;
@@ -193,7 +193,7 @@ contract Prediction is IPrediction, ReentrancyGuard {
         bytes[] calldata _priceUpdateData,
         bytes[] calldata _highPriceUpdateData,
         bytes[] calldata _lowPriceUpdateData
-    ) external payable onlyCreator nonReentrant {
+    ) external payable nonReentrant {
         require(status == Status.Open, "Prediction: Not open");
         require(block.timestamp > endTime, "Prediction: Too early to resolve");
 
@@ -269,14 +269,18 @@ contract Prediction is IPrediction, ReentrancyGuard {
         totalFees = (totalPool * feePercentage) / 100;
 
         if (totalFees > 0) {
-            uint256 creatorFee = outcome == Outcome.Yes ? (totalFees / 2) : 0; // fees for the creator if and only if the outcome is yes
-            uint256 protocolFee = totalFees - creatorFee; // Avoids dust from division
+            uint256 creatorFee = outcome == Outcome.Yes ? ((totalFees  * 2)/5 ) : 0; // fees for the creator if and only if the outcome is yes
+            uint256 liquidatorFee = ((totalFees  * 1)/5 ) ; 
+            uint256 protocolFee = totalFees - ( creatorFee + liquidatorFee); 
 
             if (creatorFee > 0) {
                 require(IERC20(stakeToken).transfer(creator, creatorFee), "Prediction: Creator fee transfer failed");
             }
             if (protocolFee > 0) {
                 require(IERC20(stakeToken).transfer(factory, protocolFee), "Prediction: Protocol fee transfer failed");
+            }
+            if(liquidatorFee > 0){
+                require(IERC20(stakeToken).transfer(msg.sender, liquidatorFee), "Prediction: Liquidator fee transfer failed");
             }
         }
     }
@@ -300,24 +304,6 @@ contract Prediction is IPrediction, ReentrancyGuard {
         require(IERC20(stakeToken).transfer(msg.sender, payout), "Payout failed");
 
         emit WinningsClaimed(msg.sender, payout);
-    }
-
-    /// @notice Factory override for abandoned/unresolvable predictions
-    function manualOverrideResolve() external override onlyFactory {
-        require(status == Status.Open, "Not open");
-        status = Status.Inactive;
-    }
-
-    /// @notice Claim original stake back when market is marked inactive
-    function claimRefund() external override nonReentrant {
-        require(status == Status.Inactive, "Not inactive");
-        require(!hasClaimed[msg.sender], "Already claimed");
-
-        uint256 amount = yesVotes[msg.sender] + noVotes[msg.sender];
-        require(amount > 0, "Nothing to refund");
-        hasClaimed[msg.sender] = true;
-
-        require(IERC20(stakeToken).transfer(msg.sender, amount), "Refund failed");
     }
 
     /// @notice Normalize a Pyth price to 8 decimals

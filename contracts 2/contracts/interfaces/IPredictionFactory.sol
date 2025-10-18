@@ -23,7 +23,6 @@ interface IPredictionFactory {
         string memory _metadataURI
     ) external returns (address);
 
-    function manualOverride(uint256 _predictionId) external;
     function withdrawProtocolFees(address token) external;
     function getUserPredictions(address _user) external view returns (uint256[] memory);
     function getPredictionOutcome(uint256 _predictionId) external view returns (IPrediction.Outcome);

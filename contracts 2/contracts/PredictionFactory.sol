@@ -86,16 +86,6 @@ contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
         return address(newPrediction);
     }
 
-    /// @notice Owner override to mark a prediction inactive if abandoned
-    /// @param _predictionId The prediction id in the registry
-    function manualOverride(uint256 _predictionId) external override onlyOwner {
-        address predAddr = predictions[_predictionId];
-        require(predAddr != address(0), "Invalid id");
-        IPrediction pred = IPrediction(predAddr);
-        require(block.timestamp > pred.endTime() + 1 days, "Too early");
-        pred.manualOverrideResolve();
-    }
-
     /// @notice Withdraw accumulated protocol fees (ERC20 or ETH) to the owner
     /// @param token Address of ERC20 token to withdraw, or address(0) for ETH
     function withdrawProtocolFees(address token) external override onlyOwner nonReentrant {
