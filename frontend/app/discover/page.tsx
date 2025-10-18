@@ -147,8 +147,6 @@ export default function DiscoverPage() {
 
   return (
     <main className="min-h-screen bg-background overflow-hidden">
-      <SiteNav />
-
       <section className="mx-auto max-w-2xl px-4 py-4 md:py-6 h-[calc(100vh-4rem)] flex flex-col">
         <div className="mb-4 text-center flex-shrink-0">
           <h1 className="font-serif text-2xl md:text-3xl mb-2">

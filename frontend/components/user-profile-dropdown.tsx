@@ -3,7 +3,14 @@
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUserStore } from "@/lib/store";
 import { useState, useRef, useEffect } from "react";
-import { User, LogOut, Copy, Check, TrendingUp, DollarSign } from "lucide-react";
+import {
+  User,
+  LogOut,
+  Copy,
+  Check,
+  TrendingUp,
+  DollarSign,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";

@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import WalletConnect from "./wallet-connect";
 import UserProfileDropdown from "./user-profile-dropdown";
-// import UserProfileDropdown from "./user-profile-dropdown"; // Optional: Use this for a dropdown instead
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function SiteNav() {
   const pathname = usePathname();
+  const { authenticated } = useAuth();
+
   const link = (href: string, label: string) => (
     <Link
       key={href}
@@ -40,10 +42,10 @@ export default function SiteNav() {
           {link("/create", "Create")}
         </div>
         <div className="flex items-center gap-2">
-          {/* Option 1: Simple wallet connect button */}
-          <WalletConnect />
+          {/* Show wallet connect only when not authenticated */}
+          {!authenticated && <WalletConnect />}
 
-          {/* Option 2: User profile dropdown (uncomment to use) */}
+          {/* Show user profile dropdown when authenticated */}
           <UserProfileDropdown />
         </div>
       </nav>

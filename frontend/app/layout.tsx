@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import InstallBanner from "@/components/install-banner";
 import "./globals.css";
 import Providers from "./Provider";
+import SiteNav from "@/components/site-nav";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -67,7 +68,10 @@ export default function RootLayout({
       </head>
       <body className="font-sans">
         <Providers>
-          <Suspense fallback={null}>{children}</Suspense>
+          <Suspense fallback={null}>
+            <SiteNav />
+            {children}
+          </Suspense>
         </Providers>
         <InstallBanner />
       </body>
