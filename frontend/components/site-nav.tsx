@@ -40,6 +40,7 @@ export default function SiteNav() {
           {link("/", "Home")}
           {link("/discover", "Discover")}
           {link("/create", "Create")}
+          {link("/resolve", "Resolve")}
         </div>
         <div className="flex items-center gap-2">
           {/* Show wallet connect only when not authenticated */}

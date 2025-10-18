@@ -83,7 +83,17 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     const whereClause: Prisma.PredictionWhereInput = {};
-    if (status) whereClause.status = status as any;
+    
+    // Handle special "expired" status
+    if (status === "expired") {
+      whereClause.status = "ACTIVE";
+      whereClause.expiresAt = {
+        lt: new Date(), // Expired = expiry date is less than now
+      };
+    } else if (status) {
+      whereClause.status = status as any;
+    }
+    
     if (creatorId) whereClause.creatorId = creatorId;
 
     const [predictions, total] = await Promise.all([
@@ -102,7 +112,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { expiresAt: "asc" }, // Show oldest expired first
         take: limit,
         skip: offset,
       }),
