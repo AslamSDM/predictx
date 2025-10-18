@@ -36,11 +36,11 @@ model Prediction {
     symbol      String // Trading pair (e.g., BTC/USD)
     direction   TradeDirection // LONG or SHORT
     status      PredictionStatus @default(ACTIVE)
-
+    address     String // Unique address for the prediction
     // Betting pool
-    totalPool Decimal @default(0)
-    yesPool   Decimal @default(0)
-    noPool    Decimal @default(0)
+    totalPool   Decimal          @default(0)
+    yesPool     Decimal          @default(0)
+    noPool      Decimal          @default(0)
 
     // Timing
     expiresAt  DateTime

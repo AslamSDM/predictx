@@ -1,4 +1,14 @@
 import { Prisma } from "@prisma/client";
+import type { Decimal } from "@prisma/client/runtime/library";
+
+// Helper type to convert Decimal to number and keep Date as Date for client components
+type DecimalToNumber<T> = T extends Decimal
+  ? number | Decimal
+  : T extends Date
+  ? Date
+  : T extends object
+  ? { [K in keyof T]: DecimalToNumber<T[K]> }
+  : T;
 
 // User types
 export type User = Prisma.UserGetPayload<Record<string, never>>;
@@ -13,9 +23,9 @@ export type UserWithRelations = Prisma.UserGetPayload<{
   };
 }>;
 
-// Prediction types
+// Prediction types - server-side only
 export type Prediction = Prisma.PredictionGetPayload<Record<string, never>>;
-export type PredictionWithRelations = Prisma.PredictionGetPayload<{
+type PredictionWithRelationsServer = Prisma.PredictionGetPayload<{
   include: {
     creator: true;
     bets: {
@@ -30,6 +40,10 @@ export type PredictionWithRelations = Prisma.PredictionGetPayload<{
     };
   };
 }>;
+
+// Client-safe version that accepts both Decimal and number
+export type PredictionWithRelations =
+  DecimalToNumber<PredictionWithRelationsServer>;
 
 // Bet types
 export type Bet = Prisma.BetGetPayload<Record<string, never>>;

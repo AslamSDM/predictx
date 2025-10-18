@@ -1,31 +1,31 @@
-"use client";
+"use client"
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
-import Image from "next/image";
+import { useState, type ChangeEvent, type FormEvent } from "react"
+import Image from "next/image"
 
 export default function PredictionForm() {
-  const [title, setTitle] = useState("");
-  const [orderId, setOrderId] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [deadline, setDeadline] = useState("");
-  const [stake, setStake] = useState("10");
-  const [outcome, setOutcome] = useState<"tp" | "notp">("tp");
-  const [preview, setPreview] = useState<string | null>(null);
+  const [title, setTitle] = useState("")
+  const [orderId, setOrderId] = useState("")
+  const [file, setFile] = useState<File | null>(null)
+  const [deadline, setDeadline] = useState("")
+  const [stake, setStake] = useState("10")
+  const [outcome, setOutcome] = useState<"tp" | "notp">("tp")
+  const [preview, setPreview] = useState<string | null>(null)
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    setFile(f || null);
+    const f = e.target.files?.[0]
+    setFile(f || null)
     if (f) {
-      const reader = new FileReader();
-      reader.onload = () => setPreview(reader.result as string);
-      reader.readAsDataURL(f);
+      const reader = new FileReader()
+      reader.onload = () => setPreview(reader.result as string)
+      reader.readAsDataURL(f)
     } else {
-      setPreview(null);
+      setPreview(null)
     }
-  };
+  }
 
   const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     // Stub: integrate with smart contract / backend later
     console.log("[v0] New prediction payload:", {
       title,
@@ -34,11 +34,9 @@ export default function PredictionForm() {
       stake,
       outcome,
       hasImage: !!file,
-    });
-    alert(
-      "Prediction created (stub). Replace with on-chain or API integration."
-    );
-  };
+    })
+    alert("Prediction created (stub). Replace with on-chain or API integration.")
+  }
 
   return (
     <form onSubmit={onSubmit} className="panel p-4 md:p-6 glow space-y-4">
@@ -89,13 +87,7 @@ export default function PredictionForm() {
         <label className="text-sm text-foreground/80" htmlFor="image">
           Trade image (optional)
         </label>
-        <input
-          id="image"
-          type="file"
-          accept="image/*"
-          onChange={onFile}
-          className="block text-sm text-foreground/70"
-        />
+        <input id="image" type="file" accept="image/*" onChange={onFile} className="block text-sm text-foreground/70" />
         {preview ? (
           <div className="mt-2 relative w-full h-48">
             <Image
@@ -106,9 +98,7 @@ export default function PredictionForm() {
             />
           </div>
         ) : (
-          <div className="text-xs text-foreground/50">
-            PNG, JPG up to a few MB.
-          </div>
+          <div className="text-xs text-foreground/50">PNG, JPG up to a few MB.</div>
         )}
       </div>
 
@@ -157,9 +147,7 @@ export default function PredictionForm() {
             onChange={(e) => setStake(e.target.value)}
             required
           />
-          <div className="text-xs text-foreground/60">
-            Token selection coming later.
-          </div>
+          <div className="text-xs text-foreground/60">Token selection coming later.</div>
         </div>
 
         <div className="space-y-1">
@@ -171,13 +159,10 @@ export default function PredictionForm() {
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <button
-          type="submit"
-          className="px-4 py-2 rounded-md bg-primary text-primary-foreground glow"
-        >
+        <button type="submit" className="px-4 py-2 rounded-md bg-primary text-primary-foreground glow">
           Create Prediction
         </button>
       </div>
     </form>
-  );
+  )
 }
