@@ -96,16 +96,17 @@ export default function BetModal({
 
       // Step 4: Call parent callback and close modal
       await onConfirm(betAmount);
-      
+
       // Reset and close
       setAmount("10");
       setError(null);
-      
+
       // Show success message
       setTimeout(() => {
-        alert(`✅ Successfully placed ${position} bet of $${betAmount.toFixed(2)}!`);
+        alert(
+          `✅ Successfully placed ${position} bet of $${betAmount.toFixed(2)}!`
+        );
       }, 100);
-      
     } catch (error: any) {
       console.error("Error placing bet:", error);
       setError(error.message || "Failed to place bet. Please try again.");
@@ -263,8 +264,9 @@ export default function BetModal({
 
               {/* Blockchain Hook Note */}
               <div className="text-xs text-blue-500/80 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                💡 <strong>Blockchain Hook:</strong> Smart contract integration is ready but commented out.
-                Enable by deploying contracts and uncommenting the contract call in the code.
+                💡 <strong>Blockchain Hook:</strong> Smart contract integration
+                is ready but commented out. Enable by deploying contracts and
+                uncommenting the contract call in the code.
               </div>
             </div>
 

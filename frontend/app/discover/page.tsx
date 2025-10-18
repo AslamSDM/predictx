@@ -5,6 +5,7 @@ import SiteNav from "@/components/site-nav";
 import SwipeCard from "@/components/swipe-card";
 import BetModal from "@/components/bet-modal";
 import LoginModal from "@/components/login-modal";
+import ChatModal from "@/components/chat-modal";
 import { usePredictionsStore, useUserStore } from "@/lib/store";
 import type { PredictionWithRelations, BetPosition } from "@/lib/types";
 import { Loader2 } from "lucide-react";
@@ -19,7 +20,10 @@ export default function DiscoverPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [selectedPrediction, setSelectedPrediction] =
+    useState<PredictionWithRelations | null>(null);
+  const [chatPrediction, setChatPrediction] =
     useState<PredictionWithRelations | null>(null);
   const [betPosition, setBetPosition] = useState<BetPosition>("YES");
 
@@ -83,6 +87,11 @@ export default function DiscoverPage() {
     } catch (error) {
       console.error("Error in bet callback:", error);
     }
+  };
+
+  const handleChatClick = (prediction: PredictionWithRelations) => {
+    setChatPrediction(prediction);
+    setShowChatModal(true);
   };
 
   const currentPrediction = predictions[currentIndex];
@@ -167,9 +176,7 @@ export default function DiscoverPage() {
           <h1 className="font-serif text-2xl md:text-3xl mb-2">
             Discover Markets
           </h1>
-          <p className="text-sm text-foreground/70 hidden md:block">
-            ← NO • YES → • ↑ Skip • ↓ Back
-          </p>
+
           <p className="text-sm text-foreground/70 md:hidden">
             Swipe to interact
           </p>
@@ -197,6 +204,7 @@ export default function DiscoverPage() {
               onSwipeRight={handleSwipeRight}
               onSwipeUp={handleSwipeUp}
               onSwipeDown={handleSwipeDown}
+              onChatClick={handleChatClick}
             />
           )}
         </div>
@@ -271,6 +279,15 @@ export default function DiscoverPage() {
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
       />
+
+      {/* Chat Modal */}
+      {chatPrediction && (
+        <ChatModal
+          isOpen={showChatModal}
+          onClose={() => setShowChatModal(false)}
+          prediction={chatPrediction}
+        />
+      )}
     </main>
   );
 }
