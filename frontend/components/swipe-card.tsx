@@ -173,7 +173,9 @@ export default function SwipeCard({
                 unoptimized
               />
               {/* Image overlay label */}
-              <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white font-medium z-10"></div>
+              <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white font-medium z-10">
+                📊 Trade Chart
+              </div>
             </div>
           )}
 

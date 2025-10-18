@@ -108,52 +108,30 @@ export default function DiscoverPage() {
     );
   }
 
-  if (predictions.length === 0) {
-    return (
-      <main>
-        <SiteNav />
-        <section className="mx-auto max-w-6xl px-4 py-10">
-          <div className="text-center py-20">
-            <h2 className="text-2xl font-bold mb-2">No Active Predictions</h2>
-            <p className="text-muted-foreground mb-4">
-              Be the first to create a prediction market!
-            </p>
-            <a
-              href="/create"
-              className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
-            >
-              Create Prediction
-            </a>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (currentIndex >= predictions.length && !hasMore) {
-    return (
-      <main>
-        <SiteNav />
-        <section className="mx-auto max-w-6xl px-4 py-10">
-          <div className="text-center py-20">
-            <h2 className="text-2xl font-bold mb-4">🎉 All caught up!</h2>
-            <p className="text-muted-foreground mb-6">
-              You've seen all active predictions
-            </p>
-            <button
-              onClick={() => {
-                setCurrentIndex(0);
-                fetchPredictions(true);
-              }}
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
-            >
-              Start Over
-            </button>
-          </div>
-        </section>
-      </main>
-    );
-  }
+  // if (currentIndex >= predictions.length && !hasMore) {
+  //   return (
+  //     <main>
+  //       <SiteNav />
+  //       <section className="mx-auto max-w-6xl px-4 py-10">
+  //         <div className="text-center py-20">
+  //           <h2 className="text-2xl font-bold mb-4">🎉 All caught up!</h2>
+  //           <p className="text-muted-foreground mb-6">
+  //             You've seen all active predictions
+  //           </p>
+  //           <button
+  //             onClick={() => {
+  //               setCurrentIndex(0);
+  //               fetchPredictions(true);
+  //             }}
+  //             className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+  //           >
+  //             Start Over
+  //           </button>
+  //         </div>
+  //       </section>
+  //     </main>
+  //   );
+  // }
 
   // Show loading if we're waiting for more predictions
   if (currentIndex >= predictions.length && hasMore) {
