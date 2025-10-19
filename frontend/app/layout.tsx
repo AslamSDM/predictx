@@ -2,12 +2,12 @@ import type React from "react";
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Analytics } from "@vercel/analytics/next";
 import { Orbitron } from "next/font/google";
 import { Suspense } from "react";
 import InstallBanner from "@/components/install-banner";
 import "./globals.css";
 import Providers from "./Provider";
+import SiteNav from "@/components/site-nav";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -68,28 +68,12 @@ export default function RootLayout({
       </head>
       <body className="font-sans">
         <Providers>
-          <Suspense fallback={null}>{children}</Suspense>
+          <Suspense fallback={null}>
+            <SiteNav />
+            {children}
+          </Suspense>
         </Providers>
         <InstallBanner />
-        <Analytics />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) {
-                      console.log('ServiceWorker registration successful');
-                    },
-                    function(err) {
-                      console.log('ServiceWorker registration failed: ', err);
-                    }
-                  );
-                });
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );

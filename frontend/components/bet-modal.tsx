@@ -4,6 +4,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, TrendingUp, TrendingDown } from "lucide-react";
 import type { PredictionWithRelations, BetPosition } from "@/lib/types";
+import { useUserStore, useBetsStore } from "@/lib/store";
+import { betApi } from "@/lib/api";
+import { useContract } from "@/lib/hooks/useContract";
 
 interface BetModalProps {
   isOpen: boolean;
@@ -22,6 +25,11 @@ export default function BetModal({
 }: BetModalProps) {
   const [amount, setAmount] = useState("10");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { user } = useUserStore();
+  const { addBet } = useBetsStore();
+  const { placeBet, isLoading: isContractLoading } = useContract();
 
   const isYes = position === "YES";
   const bgColor = isYes ? "bg-green-500/10" : "bg-red-500/10";
@@ -49,15 +57,59 @@ export default function BetModal({
 
   const handleConfirm = async () => {
     if (!amount || parseFloat(amount) <= 0) return;
+    if (!user) {
+      setError("Please login first");
+      return;
+    }
 
     setIsSubmitting(true);
+    setError(null);
+
     try {
-      await onConfirm(parseFloat(amount));
-      // Reset amount after successful bet
+      const betAmount = parseFloat(amount);
+
+      // Step 1: Place bet on blockchain (if contract address exists)
+      // TODO: Uncomment when contracts are deployed
+      // if (prediction.address && prediction.address !== '0x0000000000000000000000000000000000000000') {
+      //   try {
+      //     await placeBet({
+      //       predictionAddress: prediction.address,
+      //       amount: betAmount,
+      //       position,
+      //     });
+      //   } catch (contractError) {
+      //     console.error("Contract error:", contractError);
+      //     throw new Error("Failed to place bet on blockchain");
+      //   }
+      // }
+
+      // Step 2: Create bet in database
+      const bet = await betApi.create({
+        userId: user.id,
+        predictionId: prediction.id,
+        amount: betAmount,
+        position,
+      });
+
+      // Step 3: Add bet to store
+      addBet(bet);
+
+      // Step 4: Call parent callback and close modal
+      await onConfirm(betAmount);
+
+      // Reset and close
       setAmount("10");
-    } catch (error) {
+      setError(null);
+
+      // Show success message
+      setTimeout(() => {
+        alert(
+          `✅ Successfully placed ${position} bet of $${betAmount.toFixed(2)}!`
+        );
+      }, 100);
+    } catch (error: any) {
       console.error("Error placing bet:", error);
-    } finally {
+      setError(error.message || "Failed to place bet. Please try again.");
       setIsSubmitting(false);
     }
   };
@@ -116,6 +168,13 @@ export default function BetModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-sm text-red-500">
+                  {error}
+                </div>
+              )}
+
               {/* Prediction Info */}
               <div className="space-y-2">
                 <h3 className="font-semibold text-lg">{prediction.title}</h3>
@@ -201,6 +260,13 @@ export default function BetModal({
               {/* Warning */}
               <div className="text-xs text-muted-foreground bg-background/30 rounded-lg p-3">
                 ⚠️ Betting involves risk. Only bet what you can afford to lose.
+              </div>
+
+              {/* Blockchain Hook Note */}
+              <div className="text-xs text-blue-500/80 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                💡 <strong>Blockchain Hook:</strong> Smart contract integration
+                is ready but commented out. Enable by deploying contracts and
+                uncommenting the contract call in the code.
               </div>
             </div>
 

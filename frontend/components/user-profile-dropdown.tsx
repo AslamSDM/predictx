@@ -1,12 +1,23 @@
 "use client";
 
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useUserStore } from "@/lib/store";
 import { useState, useRef, useEffect } from "react";
-import { User, LogOut, Wallet, Settings, Copy, Check } from "lucide-react";
+import {
+  User,
+  LogOut,
+  Copy,
+  Check,
+  TrendingUp,
+  DollarSign,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function UserProfileDropdown() {
-  const { authenticated, address, email, logout } = useAuth();
+  const { authenticated, logout } = useAuth();
+  const { user } = useUserStore();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -34,109 +45,129 @@ export default function UserProfileDropdown() {
 
   // Copy address to clipboard
   const copyAddress = async () => {
-    if (!address) return;
-    await navigator.clipboard.writeText(address);
+    if (!user?.walletAddress) return;
+    await navigator.clipboard.writeText(user.walletAddress);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!authenticated) return null;
+  if (!authenticated || !user) return null;
 
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Profile Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent/50 border border-border hover:bg-accent transition-colors"
+        className="flex items-center gap-2 px-2 py-2 rounded-full hover:bg-accent transition-colors"
         aria-label="User menu"
       >
-        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-          <User className="w-4 h-4 text-primary" />
-        </div>
-        <div className="hidden md:flex flex-col items-start">
-          {email && (
-            <span className="text-xs text-muted-foreground">{email}</span>
-          )}
-          {address && (
-            <span className="text-xs font-mono text-foreground">
-              {formatAddress(address)}
-            </span>
-          )}
-        </div>
+        {user.avatar ? (
+          <Image
+            src={user.avatar}
+            alt={user.username || "User avatar"}
+            width={36}
+            height={36}
+            className="rounded-full border-2 border-primary"
+            unoptimized
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary">
+            <User className="w-5 h-5 text-primary" />
+          </div>
+        )}
+        <span className="hidden md:block text-sm font-medium">
+          {user.username}
+        </span>
       </button>
 
       {/* Dropdown Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-50"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50"
           >
-            {/* User Info */}
-            <div className="p-4 border-b border-border bg-accent/30">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="w-6 h-6 text-primary" />
-                </div>
+            {/* User Info Header */}
+            <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/30 border-b border-border">
+              <div className="flex items-center gap-3 mb-3">
+                {user.avatar ? (
+                  <Image
+                    src={user.avatar}
+                    alt={user.username || "User avatar"}
+                    width={48}
+                    height={48}
+                    className="rounded-full border-2 border-primary"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary">
+                    <User className="w-6 h-6 text-primary" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
-                  {email && (
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {email}
-                    </p>
-                  )}
-                  {address && (
-                    <button
-                      onClick={copyAddress}
-                      className="flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {formatAddress(address)}
-                      {copied ? (
-                        <Check className="w-3 h-3 text-green-500" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
-                      )}
-                    </button>
-                  )}
+                  <p className="text-base font-bold text-foreground truncate">
+                    {user.username}
+                  </p>
+                  <button
+                    onClick={copyAddress}
+                    className="flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {formatAddress(user.walletAddress)}
+                    {copied ? (
+                      <Check className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* Menu Items */}
             <div className="py-2">
-              <button
-                onClick={() => {
-                  // Add wallet management logic here
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-2 flex items-center gap-3 text-sm text-foreground hover:bg-accent transition-colors"
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="w-full px-4 py-3 flex items-center gap-3 text-sm text-foreground hover:bg-accent transition-colors cursor-pointer"
               >
-                <Wallet className="w-4 h-4 text-primary" />
-                Manage Wallets
-              </button>
+                <User className="w-4 h-4 text-primary" />
+                <div className="flex-1">
+                  <div className="font-medium">View Profile</div>
+                  <div className="text-xs text-muted-foreground">
+                    Predictions & Bets
+                  </div>
+                </div>
+              </Link>
 
-              <button
-                onClick={() => {
-                  // Add settings logic here
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-2 flex items-center gap-3 text-sm text-foreground hover:bg-accent transition-colors"
-              >
-                <Settings className="w-4 h-4 text-primary" />
-                Settings
-              </button>
+              <div className="px-4 py-2 border-t border-border">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    Predictions
+                  </span>
+                  <span className="font-semibold">0</span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" />
+                    Bets Placed
+                  </span>
+                  <span className="font-semibold">0</span>
+                </div>
+              </div>
             </div>
 
             {/* Logout */}
-            <div className="p-2 border-t border-border">
+            <div className="p-2 border-t border-border bg-accent/20">
               <button
                 onClick={() => {
                   logout();
                   setIsOpen(false);
                 }}
-                className="w-full px-4 py-2 flex items-center gap-3 text-sm text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                className="w-full px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
               >
                 <LogOut className="w-4 h-4" />
                 Logout

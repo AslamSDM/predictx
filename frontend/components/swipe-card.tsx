@@ -12,6 +12,7 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  MessageCircle,
 } from "lucide-react";
 import type { PredictionWithRelations } from "@/lib/types";
 
@@ -21,6 +22,7 @@ interface SwipeCardProps {
   onSwipeRight: (prediction: PredictionWithRelations) => void;
   onSwipeUp?: (prediction: PredictionWithRelations) => void;
   onSwipeDown?: (prediction: PredictionWithRelations) => void;
+  onChatClick?: (prediction: PredictionWithRelations) => void;
   style?: React.CSSProperties;
 }
 
@@ -30,6 +32,7 @@ export default function SwipeCard({
   onSwipeRight,
   onSwipeUp,
   onSwipeDown,
+  onChatClick,
   style,
 }: SwipeCardProps) {
   const x = useMotionValue(0);
@@ -176,8 +179,33 @@ export default function SwipeCard({
             </div>
           )}
 
+          {/* Chat Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onChatClick?.(prediction);
+            }}
+            className="absolute top-2 right-2 bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all z-10 active:scale-95 shadow-lg cursor-pointer"
+            aria-label="Open chat"
+          >
+            <MessageCircle className="w-5 h-5" />
+          </button>
           {/* Info Section */}
-          <div className="flex-1 p-4 md:p-6 flex flex-col min-h-0 overflow-y-auto">
+          <div className="flex-1 p-4 md:p-6 flex flex-col min-h-0 overflow-y-auto relative">
+            {/* Chat Button (when no image) */}
+            {!prediction.tradeImage && onChatClick && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChatClick(prediction);
+                }}
+                className="absolute top-4 right-4 bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all z-10 active:scale-95 shadow-lg cursor-pointer"
+                aria-label="Open chat"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </button>
+            )}
+
             {/* Header */}
             <div className="flex items-center gap-2 mb-3">
               {prediction.direction === "LONG" ? (
@@ -220,7 +248,7 @@ export default function SwipeCard({
                     e.stopPropagation();
                     setShowFullDescription(!showFullDescription);
                   }}
-                  className="text-xs text-primary hover:underline mt-1 flex items-center gap-1"
+                  className="text-xs text-primary hover:underline mt-1 flex items-center gap-1 cursor-pointer"
                 >
                   {showFullDescription ? (
                     <>
@@ -305,20 +333,6 @@ export default function SwipeCard({
           </div>
 
           {/* Swipe Instructions */}
-          <div className="text-center space-y-1 flex-shrink-0 border-t border-border pt-3">
-            <div className="flex items-center justify-center gap-8 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <span className="text-red-500">←</span> NO
-              </div>
-              <div className="flex items-center gap-1">
-                YES <span className="text-green-500">→</span>
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground/70">
-              <span className="text-blue-500">↑</span> Skip •{" "}
-              <span className="text-blue-500">↓</span> Back
-            </div>
-          </div>
         </div>
       </div>
     </motion.div>

@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Send, Loader2 } from "lucide-react";
-import { useLoginWithEmail, useLoginWithTelegram } from "@privy-io/react-auth";
+import { X, Mail, Loader2, Github } from "lucide-react";
+import {
+  useLoginWithEmail,
+  useLoginWithOAuth,
+  usePrivy,
+} from "@privy-io/react-auth";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -11,15 +15,26 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
-  const [activeTab, setActiveTab] = useState<"email" | "telegram">("email");
   const [emailInput, setEmailInput] = useState("");
-  const [telegramInput, setTelegramInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
 
   const { sendCode, loginWithCode, state } = useLoginWithEmail();
+  const { initOAuth } = useLoginWithOAuth();
+  const { authenticated } = usePrivy();
+
+  // Auto-close modal when user becomes authenticated
+  useEffect(() => {
+    if (authenticated && isOpen) {
+      // Small delay to show success state
+      const timer = setTimeout(() => {
+        resetModal();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [authenticated, isOpen]);
 
   const handleEmailLogin = async () => {
     if (!emailInput.trim()) {
@@ -65,34 +80,27 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     }
   };
 
-  const handleTelegramLogin = async () => {
-    if (!telegramInput.trim()) {
-      setError("Please enter your Telegram username");
-      return;
-    }
-
+  const handleOAuthLogin = async (
+    provider: "google" | "twitter" | "discord" | "github"
+  ) => {
     setIsLoading(true);
     setError("");
 
     try {
-      // Privy will handle Telegram login
-      // Open Telegram mini-app or redirect
-      window.open(
-        `https://t.me/your_bot?start=login_${telegramInput}`,
-        "_blank"
-      );
-      setError("Check Telegram to complete login");
+      await initOAuth({ provider, disableSignup: false });
+      // Modal will close automatically when user is authenticated
+      // useUserSync hook will handle database sync
     } catch (err: any) {
-      setError(err.message || "Failed to connect Telegram. Please try again.");
-    } finally {
+      console.error("OAuth login error:", err);
+      setError(
+        err.message || `Failed to login with ${provider}. Please try again.`
+      );
       setIsLoading(false);
     }
   };
 
   const resetModal = () => {
-    setActiveTab("email");
     setEmailInput("");
-    setTelegramInput("");
     setCode("");
     setCodeSent(false);
     setError("");
@@ -166,178 +174,137 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   </p>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex border-b border-border">
-                  <button
-                    onClick={() => {
-                      setActiveTab("email");
-                      setError("");
-                    }}
-                    className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
-                      activeTab === "email"
-                        ? "border-b-2 border-primary text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Mail className="w-4 h-4 inline mr-2" />
-                    Email
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab("telegram");
-                      setError("");
-                    }}
-                    className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
-                      activeTab === "telegram"
-                        ? "border-b-2 border-primary text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Send className="w-4 h-4 inline mr-2" />
-                    Telegram
-                  </button>
-                </div>
-
                 {/* Content */}
                 <div className="p-6">
-                  {activeTab === "email" ? (
-                    <div className="space-y-4">
-                      {!codeSent ? (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium mb-2">
-                              Email Address
-                            </label>
-                            <input
-                              type="email"
-                              value={emailInput}
-                              onChange={(e) => setEmailInput(e.target.value)}
-                              placeholder="your@email.com"
-                              className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                              disabled={isLoading}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleEmailLogin();
-                              }}
-                            />
-                          </div>
-
-                          <button
-                            onClick={handleEmailLogin}
-                            disabled={isLoading || !emailInput.trim()}
-                            className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                          >
-                            {isLoading ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Sending code...
-                              </>
-                            ) : (
-                              <>
-                                <Mail className="w-4 h-4" />
-                                Send Login Code
-                              </>
-                            )}
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium mb-2">
-                              Verification Code
-                            </label>
-                            <input
-                              type="text"
-                              value={code}
-                              onChange={(e) => setCode(e.target.value)}
-                              placeholder="Enter 6-digit code"
-                              className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl tracking-widest font-mono"
-                              maxLength={6}
-                              disabled={isLoading}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleVerifyCode();
-                              }}
-                            />
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Check your email at <strong>{emailInput}</strong>
-                            </p>
-                          </div>
-
-                          <button
-                            onClick={handleVerifyCode}
-                            disabled={isLoading || code.length !== 6}
-                            className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                          >
-                            {isLoading ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Verifying...
-                              </>
-                            ) : (
-                              "Verify & Login"
-                            )}
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setCodeSent(false);
-                              setCode("");
-                              setError("");
-                            }}
-                            className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            ← Back to email
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Telegram Username
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            @
-                          </span>
+                  <div className="space-y-4">
+                    {!codeSent ? (
+                      <>
+                        {/* Email Login */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            Email Address
+                          </label>
                           <input
-                            type="text"
-                            value={telegramInput}
-                            onChange={(e) =>
-                              setTelegramInput(e.target.value.replace("@", ""))
-                            }
-                            placeholder="username"
-                            className="w-full pl-8 pr-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                            type="email"
+                            value={emailInput}
+                            onChange={(e) => setEmailInput(e.target.value)}
+                            placeholder="your@email.com"
+                            className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                             disabled={isLoading}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") handleTelegramLogin();
+                              if (e.key === "Enter") handleEmailLogin();
                             }}
                           />
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Enter your Telegram username without the @ symbol
-                        </p>
-                      </div>
 
-                      <button
-                        onClick={handleTelegramLogin}
-                        disabled={isLoading || !telegramInput.trim()}
-                        className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4" />
-                            Login with Telegram
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
+                        <button
+                          onClick={handleEmailLogin}
+                          disabled={isLoading || !emailInput.trim()}
+                          className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Sending code...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="w-4 h-4" />
+                              Send Login Code
+                            </>
+                          )}
+                        </button>
+
+                        {/* Divider */}
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-border"></div>
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-card px-2 text-muted-foreground">
+                              Or continue with
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* OAuth Buttons */}
+                        <button
+                          onClick={() => handleOAuthLogin("google")}
+                          disabled={isLoading}
+                          className="px-4 py-3 w-full rounded-lg border border-border bg-background hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium"
+                        >
+                          <svg className="w-5 h-5" viewBox="0 0 24 24">
+                            <path
+                              fill="currentColor"
+                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            />
+                            <path
+                              fill="currentColor"
+                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            />
+                            <path
+                              fill="currentColor"
+                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                            />
+                            <path
+                              fill="currentColor"
+                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                            />
+                          </svg>
+                          Google
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            Verification Code
+                          </label>
+                          <input
+                            type="text"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            placeholder="Enter 6-digit code"
+                            className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl tracking-widest font-mono"
+                            maxLength={6}
+                            disabled={isLoading}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleVerifyCode();
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Check your email at <strong>{emailInput}</strong>
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={handleVerifyCode}
+                          disabled={isLoading || code.length !== 6}
+                          className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Verifying...
+                            </>
+                          ) : (
+                            "Verify & Login"
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setCodeSent(false);
+                            setCode("");
+                            setError("");
+                          }}
+                          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        >
+                          ← Back to email
+                        </button>
+                      </>
+                    )}
+                  </div>
 
                   {/* Error Message */}
                   {error && (

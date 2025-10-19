@@ -4,7 +4,6 @@ import SiteNav from "@/components/site-nav";
 export default function Page() {
   return (
     <main>
-      <SiteNav />
       <section className="mx-auto max-w-6xl px-4 pt-10 pb-16">
         <div className="panel glow p-6 md:p-10">
           <h1 className="font-serif text-3xl md:text-5xl text-balance">
