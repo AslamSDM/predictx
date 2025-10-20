@@ -168,7 +168,7 @@ export const usePredictionsStore = create<PredictionsState>((set, get) => ({
 
     set({ isLoading: reset, error: null });
     if (reset) {
-      set({ offset: 0, predictions: [] });
+      set({ offset: 0, predictions: [], hasMore: true });
     }
 
     try {
@@ -178,24 +178,45 @@ export const usePredictionsStore = create<PredictionsState>((set, get) => ({
         offset: reset ? 0 : state.offset,
       });
 
+      console.log("📥 Fetched predictions:", {
+        received: response.predictions.length,
+        hasMore: response.hasMore,
+        total: response.total,
+      });
+
       set({
         predictions: reset
-          ? [...state.predictions, ...response.predictions]
+          ? response.predictions
           : [...state.predictions, ...response.predictions],
         hasMore: response.hasMore,
+        offset: reset ? state.limit : state.offset,
         isLoading: false,
       });
     } catch (error: any) {
+      console.error("❌ Error fetching predictions:", error);
       set({ error: error.message, isLoading: false });
     }
   },
 
   loadMore: async () => {
     const state = get();
-    if (!state.hasMore || state.isLoadingMore || state.isLoading) return;
+    if (!state.hasMore || state.isLoadingMore || state.isLoading) {
+      console.log("⏸️ Skip loadMore:", {
+        hasMore: state.hasMore,
+        isLoadingMore: state.isLoadingMore,
+        isLoading: state.isLoading,
+      });
+      return;
+    }
 
     set({ isLoadingMore: true, error: null });
     const newOffset = state.offset + state.limit;
+
+    console.log("📥 Loading more predictions...", {
+      currentCount: state.predictions.length,
+      offset: newOffset,
+      limit: state.limit,
+    });
 
     try {
       const response = await predictionApi.getAll({
@@ -204,13 +225,26 @@ export const usePredictionsStore = create<PredictionsState>((set, get) => ({
         offset: newOffset,
       });
 
+      console.log("✅ Loaded more predictions:", {
+        received: response.predictions.length,
+        hasMore: response.hasMore,
+        newTotal: state.predictions.length + response.predictions.length,
+      });
+
+      // Filter out duplicates by ID
+      const existingIds = new Set(state.predictions.map((p) => p.id));
+      const newPredictions = response.predictions.filter(
+        (p) => !existingIds.has(p.id)
+      );
+
       set({
-        predictions: [...state.predictions, ...response.predictions],
+        predictions: [...state.predictions, ...newPredictions],
         hasMore: response.hasMore,
         offset: newOffset,
         isLoadingMore: false,
       });
     } catch (error: any) {
+      console.error("❌ Error loading more predictions:", error);
       set({ error: error.message, isLoadingMore: false });
     }
   },
