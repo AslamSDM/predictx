@@ -2,6 +2,7 @@
 
 import { PrivyProvider } from "@privy-io/react-auth";
 import { useUserSync } from "@/lib/hooks/useUserSync";
+import { sepolia } from "viem/chains";
 
 // Inner component that uses the user sync hook
 function UserSyncProvider({ children }: { children: React.ReactNode }) {
@@ -26,6 +27,16 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         },
         // Login methods - only email and Telegram
         loginMethods: ["email", "telegram"],
+        defaultChain: sepolia,
+        supportedChains: [sepolia],
+        // externalWallets: {
+        //   disableAllExternalWallets: true
+        // },
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: 'users-without-wallets',
+          }
+        },
       }}
     >
       <UserSyncProvider>{children}</UserSyncProvider>

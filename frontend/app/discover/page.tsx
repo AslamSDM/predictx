@@ -7,7 +7,7 @@ import BetModal from "@/components/bet-modal";
 import LoginModal from "@/components/login-modal";
 import ChatModal from "@/components/chat-modal";
 import { usePredictionsStore, useUserStore } from "@/lib/store";
-import type { PredictionWithRelations, BetPosition } from "@/lib/types";
+import { type PredictionWithRelations, type BetPosition, TradeDirection } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useContract } from "@/lib/hooks/useContract";
@@ -228,7 +228,7 @@ export default function DiscoverPage() {
               <Loader2 className="w-3 h-3 animate-spin text-primary" />
             )}
           </div>
-          
+
           {/* Progress bar */}
           <div className="mt-2 w-full max-w-xs mx-auto h-1 bg-border rounded-full overflow-hidden">
             <div

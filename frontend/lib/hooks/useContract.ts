@@ -1,7 +1,7 @@
 "use client";
 
-import { useWallets } from "@privy-io/react-auth";
-import { useState } from "react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useEffect, useState } from "react";
 import { parseEther } from "viem";
 import type { TradeDirection } from "@/lib/types";
 
@@ -11,12 +11,20 @@ import { PREDICTION_FACTORY_ADDRESS, STAKE_TOKEN_ADDRESS } from "../web3/address
 import { decodeEventLog } from "viem";
 
 export function useContract() {
-  const { wallets } = useWallets();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  console.log("wallets", wallets);
+
+  const { wallets, ready: readyWallets } = useWallets();
+  const { ready: readyAuth, authenticated } = usePrivy();
   const primaryWallet = wallets[0];
-  console.log("primaryWallet", primaryWallet);
+
+  // useEffect(() => {
+  //   if (readyAuth && authenticated && readyWallets) {
+  //     console.log("✅ Wallets loaded:", wallets);
+  //   } else {
+  //     console.log("⏳ Waiting...", { readyAuth, authenticated, readyWallets });
+  //   }
+  // }, [readyAuth, authenticated, readyWallets, wallets]);
 
 
   const getblockNumber = async () => {
@@ -58,11 +66,13 @@ export function useContract() {
       throw new Error("No wallet connected");
     }
 
+
     setIsLoading(true);
     setError(null);
 
     try {
       const provider = await primaryWallet.getEthereumProvider();
+      console.log("PROVIDER --------> ", provider)
 
       const walletClient = getWalletClient(provider);
       const publicClient = getPublicClient(provider);
@@ -105,11 +115,11 @@ export function useContract() {
 
       // Wait for transaction confirmation
       const predictionReceipt = await publicClient.waitForTransactionReceipt({ hash });
-      
+
       // Method 1: Extract from contractAddress (for direct deployments)
-      let  PredictionContractAddress = predictionReceipt.contractAddress;
-      
-      
+      let PredictionContractAddress = predictionReceipt.contractAddress;
+
+
       console.log("✅ Prediction contract deployed at:", PredictionContractAddress);
 
       //deploy Yes and No tokens
@@ -133,7 +143,7 @@ export function useContract() {
       });
       await publicClient.waitForTransactionReceipt({ hash: noTokenHash });
       const noTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: yesTokenHash });
-      const noTokenAddress= noTokenReceipt.contractAddress;
+      const noTokenAddress = noTokenReceipt.contractAddress;
       console.log("✅ No token deployed at:", noTokenAddress);
 
       //initialize market
@@ -203,14 +213,14 @@ export function useContract() {
       const publicClient = getPublicClient(provider);
       const amountWei = BigInt(params.amount * 1_000_000); // Convert to 6 decimal places
 
-        // First, approve the prediction contract to spend tokens
-        const approveHash = await walletClient.writeContract({
-          address: STAKE_TOKEN_ADDRESS as `0x${string}`,
-          abi: ERC20_ABI,
-          functionName: "approve",
-          args: [params.predictionAddress as `0x${string}`, amountWei],
-          account: primaryWallet.address as `0x${string}`,
-        });
+      // First, approve the prediction contract to spend tokens
+      const approveHash = await walletClient.writeContract({
+        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [params.predictionAddress as `0x${string}`, amountWei],
+        account: primaryWallet.address as `0x${string}`,
+      });
       const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
       console.log("Approve transaction hash:", approveHash);
 
@@ -298,7 +308,7 @@ export function useContract() {
     }
   };
 
-  
+
 
   /**
    * Get current pools for a prediction
