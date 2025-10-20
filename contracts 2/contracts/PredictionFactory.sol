@@ -29,7 +29,7 @@ contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
     mapping(address => uint256[]) public userPredictions;
 
     constructor() Ownable(msg.sender) {}
-    
+
 
     // owner() inherited from Ownable
 
@@ -47,7 +47,7 @@ contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
     function createPrediction(
         string memory _pairName,
         PredictionMarket.Direction _direction,
-        uint256 _targetPrice,
+        PredictionMarket.Price memory _targetPrice,
         uint256 _endTime,
         string memory _metadataURI,
         uint256 _initialLiquidity
@@ -75,7 +75,7 @@ contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
         predictions[predictionCount] = address(newPrediction);
         userPredictions[msg.sender].push(predictionCount);
 
-        emit PredictionCreated(predictionCount, msg.sender, address(newPrediction), _endTime, _targetPrice);
+        emit PredictionCreated(predictionCount, msg.sender, address(newPrediction), _endTime, _targetPrice.base);
         return address(newPrediction);
     }
 

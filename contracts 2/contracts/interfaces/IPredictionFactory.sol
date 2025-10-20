@@ -19,7 +19,7 @@ interface IPredictionFactory {
     function createPrediction(
         string memory _pairName,
         PredictionMarket.Direction _direction,
-        uint256 _targetPrice,
+        PredictionMarket.Price memory _targetPrice,
         uint256 _endTime,
         string memory _metadataURI,
         uint256 _initialLiquidity
