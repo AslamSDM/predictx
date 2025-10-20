@@ -7,6 +7,7 @@ import { useUserStore, usePredictionsStore } from "@/lib/store";
 import { predictionApi, uploadApi } from "@/lib/api";
 import type { TradeDirection } from "@/lib/types";
 import { Loader2 } from "lucide-react";
+import{getHighAndLow} from "@/lib/hyperliquid";
 
 export default function PredictionForm() {
   const [title, setTitle] = useState("");

@@ -37,7 +37,16 @@ export const getHighAndLow = async ({ asset, interval, startTime, endTime }: His
 
     const maxPrice = Math.max(...highs);
     const minPrice = Math.min(...lows);
-    return [maxPrice, minPrice]
+    
+    // Find the candle with the highest price
+    const highCandle = candles.find(c => Number(c.h) === maxPrice);
+    // Find the candle with the lowest price  
+    const lowCandle = candles.find(c => Number(c.l) === minPrice);
+    
+    return [
+        { price: maxPrice, timestamp: highCandle?.T },
+        { price: minPrice, timestamp: lowCandle?.T }
+    ];
 }
 
 // | Key | Meaning                                     | Example                                  |

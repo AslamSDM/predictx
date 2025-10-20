@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUserStore } from "@/lib/store";
+import { getHighAndLow } from "@/lib/hyperliquid";
+import { useContract } from "@/lib/hooks/useContract";
 import {
   Clock,
   TrendingUp,
@@ -25,6 +27,7 @@ export default function ResolvePage() {
   const [selectedPrediction, setSelectedPrediction] =
     useState<PredictionWithRelations | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
+  const { resolvePrediction, isLoading: isContractLoading } = useContract();
 
   // Fetch expired predictions that need resolution
   useEffect(() => {
@@ -71,9 +74,7 @@ export default function ResolvePage() {
   // Helper function to fetch price data from Hermes API
   const fetchPriceFromHermes = async (feedId: string, timestamp?: number) => {
     try {
-      // Use current timestamp if not provided
-      const currentTimestamp = timestamp || Math.floor(Date.now() / 1000);
-      
+      // Use current timestamp if not provided      
       const hermesUrl = `https://hermes.pyth.network/v2/updates/price/${currentTimestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
       
       console.log("🔍 Fetching price from Hermes API:", hermesUrl);
@@ -125,16 +126,38 @@ export default function ResolvePage() {
       console.log("🔗 Using Pyth feed ID:", feedId);
 
       // Step 3: Fetch price data from Hermes API
-      let priceData;
+      const [high, low] = await getHighAndLow({
+        asset: symbol, 
+        interval: "1m", 
+        startTime: new Date(prediction.createdAt).getTime(), 
+        endTime: new Date(prediction.expiresAt).getTime()
+      });
+      console.log("🔍 High and low prices:", high, low);
+
+      let highPriceData;
+      let lowPriceData;
+      let currentPriceData;
       try {
-        priceData = await fetchPriceFromHermes(feedId);
-        console.log("✅ Successfully fetched price data:", priceData);
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+        highPriceData = await fetchPriceFromHermes(feedId, high.timestamp);
+        lowPriceData = await fetchPriceFromHermes(feedId, low.timestamp);
+        currentPriceData = await fetchPriceFromHermes(feedId, currentTimestamp);
+        console.log("✅ Successfully fetched price data:");
       } catch (hermesError) {
         console.error("❌ Failed to fetch price from Hermes:", hermesError);
         // Continue with resolution even if price fetch fails
         // The backend can handle price verification separately
-        priceData = null;
+        highPriceData = null;
+        lowPriceData = null;
+        currentPriceData = null;
       }
+
+      const [resolveP1Hash, resolveP2Hash, resolveP3Hash] = await resolvePrediction({
+        predictionAddress: prediction.address,
+        highPriceData: highPriceData,
+        lowPriceData: lowPriceData,
+        currentPriceData: currentPriceData,
+      });
 
       // Step 4: Send resolution request to backend with price data
       const res = await fetch(`/api/predictions/${prediction.id}/resolve`, {

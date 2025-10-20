@@ -148,6 +148,28 @@ export function useContract() {
       console.log("Yes token transaction hash:", yesTokenHash);
       console.log("No token transaction hash:", noTokenHash);
 
+      //Approve yes token for spending into Prediction contract
+      const approveYesTokenHash = await walletClient.writeContract({
+        address: yesTokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [PredictionContractAddress as `0x${string}`, approveAmount],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: approveYesTokenHash });
+      console.log("Approve yes token transaction hash:", approveYesTokenHash);
+
+      //Approve no token for spending into Prediction contract
+      const approveNoTokenHash = await walletClient.writeContract({
+        address: noTokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [PredictionContractAddress as `0x${string}`, approveAmount],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: approveNoTokenHash });
+      console.log("Approve no token transaction hash:", approveNoTokenHash);
+
       setIsLoading(false);
       return [String(PredictionContractAddress), String(yesTokenAddress), String(noTokenAddress)]; // Return the actual deployed contract address
     } catch (err: any) {
@@ -215,6 +237,69 @@ export function useContract() {
     }
   };
 
+
+
+  const resolvePrediction = async (params: {
+    predictionAddress: string;
+    highPriceData:string;
+    lowPriceData:string;
+    currentPriceData:string;
+  }): Promise<string[]> => {
+    if (!primaryWallet) {
+      throw new Error("No wallet connected");
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const provider = await primaryWallet.getEthereumProvider();
+
+      const walletClient = getWalletClient(provider);
+      const publicClient = getPublicClient(provider);
+
+      const resolveP1Hash = await walletClient.writeContract({
+        address: params.predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "report",
+        args: [params.highPriceData],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      const resolveP1Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP1Hash });
+      console.log("Resolve P1 transaction hash:", resolveP1Hash);
+
+      const resolveP2Hash = await walletClient.writeContract({
+        address: params.predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "report",
+        args: [params.lowPriceData],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      const resolveP2Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP2Hash });
+      console.log("Resolve P2 transaction hash:", resolveP2Hash);
+
+      const resolveP3Hash = await walletClient.writeContract({
+        address: params.predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "report",
+        args: [params.currentPriceData],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      const resolveP3Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP3Hash });
+      console.log("Resolve P3 transaction hash:", resolveP3Hash);
+
+      setIsLoading(false);
+      return [String(resolveP1Hash), String(resolveP2Hash), String(resolveP3Hash)];
+    } catch (err: any) {
+      const errorMsg = err.message || "Failed to place bet";
+      setError(errorMsg);
+      setIsLoading(false);
+      throw new Error(errorMsg);
+    }
+  };
+
+  
+
   /**
    * Get current pools for a prediction
    */
@@ -247,6 +332,7 @@ export function useContract() {
     createPrediction,
     placeBet,
     getPredictionPools,
+    resolvePrediction,
     isLoading,
     error,
     isConnected: !!primaryWallet,
