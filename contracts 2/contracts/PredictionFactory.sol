@@ -13,8 +13,9 @@ import { PredictionMarket } from "./PredictionMarket.sol";
 /// @author PredictX
 contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
     /// @notice Address of the Pyth contract used by predictions
-    address public immutable pythContractAddress = 0xDd24F84d36BF92C65F92307595335bdFab5Bbd21;
-    address public immutable stakeToken =0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9 ;
+    
+    /// @notice Decimals for PYUSD token (6 decimals)
+    uint256 private constant PYUSD_DECIMALS = 6;
 
     /// @notice Protocol fee percentage applied to losing pool for new predictions
 
@@ -43,31 +44,18 @@ contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
         revert("Unsupported pair");
     }
 
-    /// @notice Create a new prediction market instance
-    /// @param _pairName Human-readable pair name
-    /// @param _direction Direction of the prediction (Up or Down)
-    /// @param _targetPrice Target price (8 decimals)
-    /// @param _endTime Market end time (future)
-    /// @param _metadataURI Optional metadata URI
-    /// @param _initialLiquidity Initial PYUSD liquidity amount
-    /// @param _initialTokenValue Initial token value in PYUSD
-    /// @param _percentageToLock Percentage of tokens to lock for creator (1-99)
     function createPrediction(
         string memory _pairName,
         PredictionMarket.Direction _direction,
         uint256 _targetPrice,
         uint256 _endTime,
         string memory _metadataURI,
-        uint256 _initialLiquidity,
-        uint256 _initialTokenValue,
-        uint8 _percentageToLock
+        uint256 _initialLiquidity
     ) external override returns (address) {
         require(_endTime > block.timestamp, "End must be future");
         require(!(_endTime - block.timestamp > 2 days), "End must be less than 2 days from now");
         require(_initialLiquidity > 0, "Initial liquidity must be greater than 0");
-        require(_initialTokenValue > 0, "Initial token value must be greater than 0");
         // Initial probability is hardcoded to 50% (50)
-        require(_percentageToLock > 0 && _percentageToLock < 100, "Invalid percentage to lock");
         
         bytes32 feedId = _resolvePythFeedId(_pairName);
 
@@ -75,16 +63,12 @@ contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
             msg.sender,
             address(this),
             _pairName,
-            stakeToken,
             _direction,
             feedId,
             _targetPrice,
             _endTime,
             _metadataURI,
-            _initialLiquidity,
-            _initialTokenValue,
-            50,
-            _percentageToLock
+            _initialLiquidity
         );
 
         predictionCount += 1;
@@ -123,5 +107,6 @@ contract PredictionFactory is IPredictionFactory, Ownable, ReentrancyGuard {
     }
 
 }
+
 
 

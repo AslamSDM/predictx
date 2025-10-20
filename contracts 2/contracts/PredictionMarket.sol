@@ -36,15 +36,20 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         Undetermined
     }
     enum Direction { Up, Down }
+    enum Status {
+         NOT_RESOLVED,
+         HIGHPRICE_RESOLVED,
+         LOWPRICE_RESOLVED, 
+         PRICE_UPDATED
+          }
 
 
     uint256 private constant PRECISION = 1e18;
     uint256 private constant PYUSD_DECIMALS = 6;
     
-    string public s_question;
-    uint256 public initialTokenValue;
-    uint8 public initialYesProbability;
-    uint8 public percentageToLock;
+    uint256 public initialTokenValue = 10000;
+    uint8 public initialYesProbability = 50;
+    uint8 public percentageToLock = 10;
     uint256 public PYUSDCollateral;
     uint256 public lpTradingRevenue;
     PredictionMarketToken public yesToken;
@@ -52,22 +57,26 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
 
 
  
-    bool public isReported;
+    bool public isReported=false;
     PredictionMarketToken public winningToken;
 
-    enum Status { Open, Resolved }
     Status public status;
     Outcome public outcome;
     uint256 public startTime;
     uint256 public endTime;
     string public metadataURI;
-    address public stakeToken;
+    address public immutable stakeToken = 0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9; //PYUSD
+    address public immutable pythContractAddress = 0xDd24F84d36BF92C65F92307595335bdFab5Bbd21;
     Direction public direction;
     bytes32 public pythPriceFeedId;
     uint256 public targetPrice;
     string public pairName;
     address public factory;
     address public creator;
+
+    PythStructs.PriceFeed public highPriceFeed;
+    PythStructs.PriceFeed public lowPriceFeed;
+    PythStructs.PriceFeed public updatePriceFeed;
 
     event TokensPurchased(address indexed buyer, Outcome outcome, uint256 amount, uint256 ethAmount);
     event TokensSold(address indexed seller, Outcome outcome, uint256 amount, uint256 ethAmount);
@@ -116,71 +125,54 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         address _creator,
         address _factory,
         string memory _pairName,
-        address _stakeToken,
         Direction _direction,
         bytes32 _pythPriceFeedId,
         uint256 _targetPrice,
         uint256 _endTime,
         string memory _metadataURI,
-        uint256 _initialLiquidity,
-        uint256 _initialTokenValue,
-        uint8 _initialYesProbability,
-        uint8 _percentageToLock
+        uint256 _initialLiquidity
     ) Ownable(_creator) {
 
         if (_initialLiquidity < 1) {
             revert PredictionMarket__MustProvidePYUSDForInitialLiquidity();
         }
-        
-        if (_initialYesProbability == 0 || _initialYesProbability >= 100) {
-            revert PredictionMarket__InvalidProbability();
-        }
-        
-        if (_percentageToLock == 0 || _percentageToLock >= 100) {
-            revert PredictionMarket__InvalidPercentageToLock();
-        }
+        require(IERC20(stakeToken).allowance(creator, address(this)) >= _initialLiquidity, "Insufficient allowance");
+
         pythPriceFeedId = _pythPriceFeedId;
         targetPrice = _targetPrice;
         endTime = _endTime;
         metadataURI = _metadataURI;
         startTime = block.timestamp;
-        stakeToken = _stakeToken; //pyUSD
         direction = _direction; //Up or Down
         pairName = _pairName;
-        status = Status.Open;
+        status = Status.NOT_RESOLVED;
         outcome = Outcome.Undetermined;
-        initialTokenValue = _initialTokenValue;
-        initialYesProbability = _initialYesProbability;
-        percentageToLock = _percentageToLock;
         creator = _creator;
         factory = _factory;
 
         PYUSDCollateral = _initialLiquidity;
-        
+        require(IERC20(stakeToken).transferFrom(creator, address(this), _initialLiquidity), "Transfer failed");
 
-        uint256 initialTokenAmount = (_initialLiquidity * PRECISION) / _initialTokenValue;
-        
+        uint256 initialTokenAmount = (_initialLiquidity * PRECISION) / (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)));
+        uint256 initialYesAmountLocked = (initialTokenAmount * initialYesProbability * percentageToLock * 2) / 10000;
+        uint256 initialNoAmountLocked = (initialTokenAmount * (100 - initialYesProbability) * percentageToLock * 2) / 10000;
+
         yesToken = new PredictionMarketToken(
             "YES",
             "YES",
-            _creator,
-            initialTokenAmount
+           _creator,
+            (initialTokenAmount)
         );
         
         noToken = new PredictionMarketToken(
             "NO", 
             "NO",
-            _creator,
-            initialTokenAmount
+           _creator,
+            (initialTokenAmount)
         );
-        
-        // Transfer locked tokens to deployer based on initial probability
-        uint256 initialYesAmountLocked = (initialTokenAmount * _initialYesProbability * _percentageToLock * 2) / 10000;
-        uint256 initialNoAmountLocked = (initialTokenAmount * (100 - _initialYesProbability) * _percentageToLock * 2) / 10000;
-        
-        yesToken.transfer(_creator, initialYesAmountLocked);
-        noToken.transfer(_creator, initialNoAmountLocked);
-        isReported=false;
+
+        yesToken.transfer(creator, initialYesAmountLocked);
+        noToken.transfer(creator, initialNoAmountLocked);
     }
 
 
@@ -198,7 +190,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         require(IERC20(stakeToken).allowance(msg.sender, address(this)) >= _PYUSDAmount, "Insufficient allowance");
         require(IERC20(stakeToken).transferFrom(msg.sender, address(this), _PYUSDAmount), "Transfer failed");
         
-        uint256 tokenAmount = (_PYUSDAmount * PRECISION) / initialTokenValue;
+        uint256 tokenAmount = (_PYUSDAmount * PRECISION) / (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)));
         
         PYUSDCollateral += _PYUSDAmount;
         
@@ -215,7 +207,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
             revert PredictionMarket__PredictionAlreadyReported();
         }
         
-        uint256 tokenAmount = (PYUSDToWithdraw * PRECISION) / initialTokenValue;
+        uint256 tokenAmount = (PYUSDToWithdraw * PRECISION) / (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)));
         
         if (yesToken.balanceOf(address(this)) < tokenAmount || noToken.balanceOf(address(this)) < tokenAmount) {
             revert PredictionMarket__InsufficientTokenReserve(Outcome.YES, tokenAmount);
@@ -232,51 +224,56 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     }
 
 
+
+
     function _update_and_validate (
-        bytes[] calldata _highPriceUpdateData,
-        bytes[] calldata _lowPriceUpdateData
-    ) private nonReentrant returns (PythStructs.PriceFeed[] memory ) {
-        IPyth pyth = IPyth(IPredictionFactory(factory).pythContractAddress());
-        uint256 highfees = pyth.getUpdateFee(_highPriceUpdateData);
-        uint256 lowfees = pyth.getUpdateFee(_lowPriceUpdateData);
-        require(msg.value >=( highfees + (lowfees * 2)), "Insufficient funds"); //*2 just to incorporate updation fee also
+            bytes[] calldata _priceUpdateData
+    ) private nonReentrant returns (PythStructs.PriceFeed memory ) {
+        IPyth pyth = IPyth(pythContractAddress);
+        uint256 fees = pyth.getUpdateFee(_priceUpdateData);
+        require(msg.value >= fees, "Insufficient funds"); //*2 just to incorporate updation fee also
         bytes32[] memory priceIds = new bytes32[](1);
         priceIds[0] = pythPriceFeedId;
         uint64 minPublishTime = uint64(startTime);
         uint64 maxPublishTime = uint64(endTime);
-        PythStructs.PriceFeed[] memory priceFeeds = new PythStructs.PriceFeed[](2);
+        PythStructs.PriceFeed memory priceFeed;
 
-        priceFeeds[0] = pyth.parsePriceFeedUpdates{value: highfees}(
-            _highPriceUpdateData,
+        priceFeed = pyth.parsePriceFeedUpdates{value: fees}(
+            _priceUpdateData,
             priceIds,
             minPublishTime,
             maxPublishTime
         )[0];
-        priceFeeds[1]= pyth.parsePriceFeedUpdates{value: lowfees}(
-            _lowPriceUpdateData,
-            priceIds,
-            minPublishTime,
-            maxPublishTime
-        )[0];
-
-        return priceFeeds;
+        return priceFeed;
 
     }
 
-    function report( 
-        bytes[] calldata _priceUpdateData,
-        bytes[] calldata _highPriceUpdateData,
-        bytes[] calldata _lowPriceUpdateData ) external payable nonReentrant {
-        
+    //first send high price update data
+    //then send low price update data
+    //then send update price data
+    function report(bytes[] calldata _priceUpdateData) external payable nonReentrant {
+
         if (isReported) {
             revert PredictionMarket__PredictionAlreadyReported();
         }
-        
-        isReported = true;
-        PythStructs.PriceFeed[] memory priceFeeds = _update_and_validate(_highPriceUpdateData, _lowPriceUpdateData);
-        
-        if(direction == Direction.Up){
-            if(_normalizeTo8(uint256(int256(priceFeeds[0].price.price)), priceFeeds[0].price.expo) >= targetPrice){
+        if(status == Status.NOT_RESOLVED){
+            //resolve high price feed and update status to HIGHPRICE_RESOLVED
+            highPriceFeed = _update_and_validate(_priceUpdateData);
+            status = Status.HIGHPRICE_RESOLVED;
+            return;
+        }
+        if(status == Status.HIGHPRICE_RESOLVED){
+            //resolve low price feed and update status to LOWPRICE_RESOLVED
+            lowPriceFeed = _update_and_validate(_priceUpdateData);
+            status = Status.LOWPRICE_RESOLVED;
+            return;
+        }
+        if(status == Status.LOWPRICE_RESOLVED){
+            //update price feed and update status to PRICE_UPDATED
+            isReported = true;
+
+            if(direction == Direction.Up){
+            if(_normalizeTo8(uint256(int256(highPriceFeed.price.price)), highPriceFeed.price.expo) >= targetPrice){
                 outcome = Outcome.YES;
                 winningToken = yesToken;
             } else {
@@ -285,7 +282,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
             }
         }
         if(direction == Direction.Down){
-            if(_normalizeTo8(uint256(int256(priceFeeds[1].price.price)), priceFeeds[1].price.expo) <= targetPrice){
+            if(_normalizeTo8(uint256(int256(lowPriceFeed.price.price)), lowPriceFeed.price.expo) <= targetPrice){
                 outcome = Outcome.YES;
                 winningToken = yesToken;
             } else {
@@ -293,13 +290,17 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
                 winningToken = noToken;
             }
         }
-        IPyth pyth = IPyth(IPredictionFactory(factory).pythContractAddress());
+        IPyth pyth = IPyth(pythContractAddress);
         uint256 updatefees = pyth.getUpdateFee(_priceUpdateData);
         pyth.updatePriceFeeds{ value: updatefees }(_priceUpdateData);
         PythStructs.Price memory priceNow = pyth.getPriceNoOlderThan(pythPriceFeedId, 60);
         emit MarketReported(msg.sender, outcome, address(winningToken));
         emit CurrentPairTokenPrice(_normalizeTo8(uint256(int256(priceNow.price)), priceNow.expo));
+        status = Status.PRICE_UPDATED;
+        return;
+        }
     }
+   
 
 
     function resolveMarketAndWithdraw() external onlyOwner returns (uint256) {
@@ -415,7 +416,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         }
         
         // Calculate initial token amount (total supply)
-        uint256 initialTokenAmount = (PYUSDCollateral * PRECISION) / initialTokenValue;
+        uint256 initialTokenAmount = (PYUSDCollateral * PRECISION) / (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)));
         
         // Calculate current tokens sold
         uint256 currentTokenSoldBefore = initialTokenAmount - currentTokenReserve;
@@ -440,7 +441,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         uint256 probabilityAfter = _calculateProbability(currentTokenSoldAfter, totalTokensSoldAfter);
         uint256 probabilityAvg = (probabilityBefore + probabilityAfter) / 2;
         
-        return (initialTokenValue * probabilityAvg * _tradingAmount) / (PRECISION * PRECISION);
+        return (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)) * probabilityAvg * _tradingAmount) / (PRECISION * PRECISION);
     }
 
     /**
