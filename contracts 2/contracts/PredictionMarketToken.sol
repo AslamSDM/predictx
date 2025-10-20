@@ -42,6 +42,9 @@ contract PredictionMarketToken is ERC20 {
         }
         return super.transfer(to, amount);
     }
+    function decimals() public pure override returns (uint8) {
+        return 6;
+    }
 
     function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         if (from == liquidityProvider) {

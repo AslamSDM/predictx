@@ -13,22 +13,19 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     /// Errors //////
     /////////////////
 
-    error PredictionMarket__MustProvidePYUSDForInitialLiquidity();
-    error PredictionMarket__InvalidProbability();
     error PredictionMarket__PredictionAlreadyReported();
-    error PredictionMarket__OnlyOracleCanReport();
     error PredictionMarket__OwnerCannotCall();
     error PredictionMarket__PredictionNotReported();
     error PredictionMarket__InsufficientWinningTokens();
     error PredictionMarket__AmountMustBeGreaterThanZero();
-    error PredictionMarket__MustSendExactETHAmount();
     error PredictionMarket__InsufficientTokenReserve(Outcome _outcome, uint256 _amountToken);
     error PredictionMarket__TokenTransferFailed();
-    error PredictionMarket__ETHTransferFailed();
     error PredictionMarket__InsufficientBalance(uint256 _tradingAmount, uint256 _userBalance);
     error PredictionMarket__InsufficientAllowance(uint256 _tradingAmount, uint256 _allowance);
     error PredictionMarket__InsufficientLiquidity();
-    error PredictionMarket__InvalidPercentageToLock();
+    error PredictionMarket__MarketNotInitialized();
+    error PredictionMarket__MarketAlreadyInitialized();
+    error PredictionMarket__MarketNotEnded();
 
     enum Outcome {
         YES,
@@ -37,20 +34,23 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     }
     enum Direction { Up, Down }
     enum Status {
-         NOT_RESOLVED,
+        NOT_INITIALIZED,
+        ONE_TOKEN_MINTED,
+        TWO_TOKEN_MINTED,
+        MARKET_INITIALIZED,
          HIGHPRICE_RESOLVED,
          LOWPRICE_RESOLVED, 
          PRICE_UPDATED
           }
 
 
-    uint256 private constant PRECISION = 1e18;
+    uint256 private constant PRECISION = 1e6;
     uint256 private constant PYUSD_DECIMALS = 6;
     
     uint256 public initialTokenValue = 10000;
     uint8 public initialYesProbability = 50;
     uint8 public percentageToLock = 10;
-    uint256 public PYUSDCollateral;
+    uint256 public pyUSD;
     uint256 public lpTradingRevenue;
     PredictionMarketToken public yesToken;
     PredictionMarketToken public noToken;
@@ -119,6 +119,13 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         _;
     }
 
+    modifier marketInitialized() {
+        if (status != Status.MARKET_INITIALIZED) {
+            revert PredictionMarket__MarketNotInitialized();
+        }
+        _;
+    }
+
 
 
     constructor(
@@ -133,11 +140,6 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         uint256 _initialLiquidity
     ) Ownable(_creator) {
 
-        if (_initialLiquidity < 1) {
-            revert PredictionMarket__MustProvidePYUSDForInitialLiquidity();
-        }
-        require(IERC20(stakeToken).allowance(creator, address(this)) >= _initialLiquidity, "Insufficient allowance");
-
         pythPriceFeedId = _pythPriceFeedId;
         targetPrice = _targetPrice;
         endTime = _endTime;
@@ -145,39 +147,60 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         startTime = block.timestamp;
         direction = _direction; //Up or Down
         pairName = _pairName;
-        status = Status.NOT_RESOLVED;
+        status = Status.NOT_INITIALIZED;
         outcome = Outcome.Undetermined;
         creator = _creator;
         factory = _factory;
 
-        PYUSDCollateral = _initialLiquidity;
-        require(IERC20(stakeToken).transferFrom(creator, address(this), _initialLiquidity), "Transfer failed");
-
-        uint256 initialTokenAmount = (_initialLiquidity * PRECISION) / (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)));
-        uint256 initialYesAmountLocked = (initialTokenAmount * initialYesProbability * percentageToLock * 2) / 10000;
-        uint256 initialNoAmountLocked = (initialTokenAmount * (100 - initialYesProbability) * percentageToLock * 2) / 10000;
-
-        yesToken = new PredictionMarketToken(
-            "YES",
-            "YES",
-           _creator,
-            (initialTokenAmount)
-        );
-        
+        pyUSD = _initialLiquidity;
+       
+    }
+    function initializeNoToken() external onlyOwner {
+if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
+    revert PredictionMarket__MarketAlreadyInitialized();
+}
+        uint256 initialTokenAmount = (pyUSD/initialTokenValue)*PRECISION;
         noToken = new PredictionMarketToken(
             "NO", 
             "NO",
-           _creator,
+            creator,
             (initialTokenAmount)
         );
+        status = status == Status.NOT_INITIALIZED ? Status.ONE_TOKEN_MINTED : Status.TWO_TOKEN_MINTED;
+        }
 
+    function initializeYesToken() external onlyOwner {
+if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
+    revert PredictionMarket__MarketAlreadyInitialized();
+}
+        uint256 initialTokenAmount = (pyUSD/initialTokenValue)*PRECISION;
+        yesToken = new PredictionMarketToken(
+            "YES",
+            "YES",
+           creator,
+            (initialTokenAmount)
+        );
+        status = status == Status.NOT_INITIALIZED ? Status.ONE_TOKEN_MINTED : Status.TWO_TOKEN_MINTED;
+    }
+    
+    function initializeMarket() external onlyOwner {
+        if (status != Status.TWO_TOKEN_MINTED) {
+            revert PredictionMarket__MarketNotInitialized();
+        }
+        require(IERC20(stakeToken).allowance(creator, address(this)) >= pyUSD, "Insufficient allowance");
+        require(IERC20(stakeToken).transferFrom(creator, address(this), pyUSD), "Transfer failed");
+        uint256 initialTokenAmount = (pyUSD/initialTokenValue)*PRECISION;
+        uint256 initialYesAmountLocked = (initialTokenAmount * initialYesProbability * percentageToLock * 2) / 10000;
+        uint256 initialNoAmountLocked = (initialTokenAmount * (100 - initialYesProbability) * percentageToLock * 2) / 10000;
         yesToken.transfer(creator, initialYesAmountLocked);
         noToken.transfer(creator, initialNoAmountLocked);
+        status = Status.MARKET_INITIALIZED;
+        isReported = false;
     }
 
 
 
-    function addLiquidity(uint256 _PYUSDAmount) external onlyOwner {
+    function addLiquidity(uint256 _PYUSDAmount) external onlyOwner  {
 
         if (isReported) {
             revert PredictionMarket__PredictionAlreadyReported();
@@ -190,9 +213,9 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         require(IERC20(stakeToken).allowance(msg.sender, address(this)) >= _PYUSDAmount, "Insufficient allowance");
         require(IERC20(stakeToken).transferFrom(msg.sender, address(this), _PYUSDAmount), "Transfer failed");
         
-        uint256 tokenAmount = (_PYUSDAmount * PRECISION) / (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)));
+        uint256 tokenAmount =( _PYUSDAmount/initialTokenValue)*PRECISION;
         
-        PYUSDCollateral += _PYUSDAmount;
+        pyUSD += _PYUSDAmount;
         
         yesToken.mint(address(this), tokenAmount);
         noToken.mint(address(this), tokenAmount);
@@ -207,13 +230,13 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
             revert PredictionMarket__PredictionAlreadyReported();
         }
         
-        uint256 tokenAmount = (PYUSDToWithdraw * PRECISION) / (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)));
+        uint256 tokenAmount = (PYUSDToWithdraw/initialTokenValue)*PRECISION;
         
         if (yesToken.balanceOf(address(this)) < tokenAmount || noToken.balanceOf(address(this)) < tokenAmount) {
             revert PredictionMarket__InsufficientTokenReserve(Outcome.YES, tokenAmount);
         }
         
-        PYUSDCollateral -= PYUSDToWithdraw;
+        pyUSD -= PYUSDToWithdraw;
         
         yesToken.burn(address(this), tokenAmount);
         noToken.burn(address(this), tokenAmount);
@@ -251,12 +274,15 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     //first send high price update data
     //then send low price update data
     //then send update price data
-    function report(bytes[] calldata _priceUpdateData) external payable nonReentrant {
+    function report(bytes[] calldata _priceUpdateData) external payable nonReentrant  {
 
         if (isReported) {
             revert PredictionMarket__PredictionAlreadyReported();
         }
-        if(status == Status.NOT_RESOLVED){
+        if(block.timestamp  < endTime){
+            revert PredictionMarket__MarketNotEnded();
+        }
+        if(status == Status.MARKET_INITIALIZED){
             //resolve high price feed and update status to HIGHPRICE_RESOLVED
             highPriceFeed = _update_and_validate(_priceUpdateData);
             status = Status.HIGHPRICE_RESOLVED;
@@ -303,14 +329,14 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
    
 
 
-    function resolveMarketAndWithdraw() external onlyOwner returns (uint256) {
+    function resolveMarketAndWithdraw() external onlyOwner returns (uint256)  {
       
         if (!isReported) {
             revert PredictionMarket__PredictionNotReported();
         }
         
         uint256 winningTokens = winningToken.balanceOf(address(this));
-        uint256 PYUSDFromWinningTokens = (winningTokens * initialTokenValue) / PRECISION;
+        uint256 PYUSDFromWinningTokens = (winningTokens*initialTokenValue)/(10**PYUSD_DECIMALS);
         
         winningToken.burn(address(this), winningTokens);
         
@@ -326,7 +352,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
      * @param _outcome The possible outcome (YES or NO) to buy tokens for
      * @param _amountTokenToBuy Amount of tokens to purchase
      */
-    function buyTokensWithPYUSD(Outcome _outcome, uint256 _amountTokenToBuy) external predictionNotReported notOwner amountGreaterThanZero(_amountTokenToBuy) {
+    function buyTokensWithPYUSD(Outcome _outcome, uint256 _amountTokenToBuy) external  predictionNotReported notOwner amountGreaterThanZero(_amountTokenToBuy) {
       
         uint256 requiredPYUSD = getBuyPriceInPYUSD(_outcome, _amountTokenToBuy);
         
@@ -373,9 +399,9 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
             revert PredictionMarket__InsufficientWinningTokens();
         }
         
-        uint256 PYUSDToRecieve = (_amount * initialTokenValue) / PRECISION;
+        uint256 PYUSDToRecieve = (_amount * initialTokenValue) / (10**PYUSD_DECIMALS);
         
-        PYUSDCollateral -= PYUSDToRecieve;
+        pyUSD -= PYUSDToRecieve;
         
         winningToken.burn(msg.sender, _amount);
         
@@ -416,7 +442,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         }
         
         // Calculate initial token amount (total supply)
-        uint256 initialTokenAmount = (PYUSDCollateral * PRECISION) / (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)));
+        uint256 initialTokenAmount = (pyUSD/initialTokenValue)*PRECISION;
         
         // Calculate current tokens sold
         uint256 currentTokenSoldBefore = initialTokenAmount - currentTokenReserve;
@@ -441,7 +467,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         uint256 probabilityAfter = _calculateProbability(currentTokenSoldAfter, totalTokensSoldAfter);
         uint256 probabilityAvg = (probabilityBefore + probabilityAfter) / 2;
         
-        return (initialTokenValue * (10 ** (18 - PYUSD_DECIMALS)) * probabilityAvg * _tradingAmount) / (PRECISION * PRECISION);
+        return (initialTokenValue  * probabilityAvg * _tradingAmount) / (PRECISION *PRECISION );
     }
 
     /**
