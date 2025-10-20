@@ -199,29 +199,28 @@ export function useContract() {
       const provider = await primaryWallet.getEthereumProvider();
 
       const walletClient = getWalletClient(provider);
+      const publicClient = getPublicClient(provider);
+      const amountWei = BigInt(params.amount * 1_000_000); // Convert to 6 decimal places
 
-      const amountWei = parseEther(params.amount.toString());
-
-      // First, approve the prediction contract to spend tokens
-      const approveHash = await walletClient.writeContract({
-        address: STAKE_TOKEN_ADDRESS,
-        abi: ERC20_ABI,
-        functionName: "approve",
-        args: [params.predictionAddress as `0x${string}`, amountWei],
-        account: primaryWallet.address as `0x${string}`,
-      });
-
+        // First, approve the prediction contract to spend tokens
+        const approveHash = await walletClient.writeContract({
+          address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [params.predictionAddress as `0x${string}`, amountWei],
+          account: primaryWallet.address as `0x${string}`,
+        });
+      const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
       console.log("Approve transaction hash:", approveHash);
 
-      // Wait a bit for approval (in production, wait for receipt)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Then place the bet
+      const votePosition = params.position === "YES" ? 0 : 1;
       const voteHash = await walletClient.writeContract({
         address: params.predictionAddress as `0x${string}`,
         abi: PREDICTION_ABI,
-        functionName: "vote",
-        args: [params.position === "YES", amountWei],
+        functionName: "buyTokensWithPYUSD",
+        args: [votePosition, amountWei],
         account: primaryWallet.address as `0x${string}`,
       });
 
