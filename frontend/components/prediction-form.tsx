@@ -20,6 +20,7 @@ export default function PredictionForm() {
   const [direction, setDirection] = useState<TradeDirection>("LONG");
   const [preview, setPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { user } = useUserStore();
@@ -34,12 +35,34 @@ export default function PredictionForm() {
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    setFile(f || null);
+
+    // Validate file
     if (f) {
+      // Check file size (limit to 10MB for images/videos)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (f.size > maxSize) {
+        setError("File size too large. Maximum allowed size is 10MB.");
+        return;
+      }
+
+      // Check file type
+      const isImage = f.type.startsWith("image/");
+      const isVideo = f.type.startsWith("video/");
+
+      if (!isImage && !isVideo) {
+        setError("Only image and video files are supported.");
+        return;
+      }
+
+      setFile(f);
+      setError(null);
+
+      // Generate preview
       const reader = new FileReader();
       reader.onload = () => setPreview(reader.result as string);
       reader.readAsDataURL(f);
     } else {
+      setFile(null);
       setPreview(null);
     }
   };
@@ -73,11 +96,34 @@ export default function PredictionForm() {
     setError(null);
 
     try {
-      // 1. Upload image if present
+      // 1. Upload image/video if present
       let imageUrl = "";
+      let uploadedFileKey = "";
+
       if (file) {
-        const uploadResult = await uploadApi.uploadImage(file);
-        imageUrl = uploadResult.url;
+        setIsUploading(true);
+        try {
+          const uploadResult = await uploadApi.uploadImage(file);
+
+          if (!uploadResult.success) {
+            throw new Error("Upload failed");
+          }
+
+          imageUrl = uploadResult.url;
+          uploadedFileKey = uploadResult.key;
+
+          console.log("File uploaded successfully:", {
+            url: imageUrl,
+            key: uploadedFileKey,
+            size: uploadResult.size,
+            type: uploadResult.fileType,
+          });
+        } catch (uploadError: any) {
+          console.error("Upload error:", uploadError);
+          throw new Error(`Failed to upload file: ${uploadError.message}`);
+        } finally {
+          setIsUploading(false);
+        }
       }
 
       // 2. Create prediction on blockchain
@@ -135,15 +181,17 @@ export default function PredictionForm() {
       setPreview(null);
       setDeadline("");
       setDirection("LONG");
+      setError(null);
     } catch (err: any) {
       console.error("Error creating prediction:", err);
       setError(err.message || "Failed to create prediction");
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
-  const isLoading = isSubmitting || isContractLoading;
+  const isLoading = isSubmitting || isContractLoading || isUploading;
 
   return (
     <form onSubmit={onSubmit} className="panel p-4 md:p-6 glow space-y-4">
@@ -315,30 +363,44 @@ export default function PredictionForm() {
 
       <div className="space-y-1">
         <label className="text-sm text-foreground/80" htmlFor="image">
-          Trade image (optional)
+          Trade image/video (optional)
         </label>
         <input
           id="image"
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           onChange={onFile}
           className="block text-sm text-foreground/70"
           disabled={isLoading}
         />
-        {preview ? (
-          <div className="mt-2 relative w-full h-48">
-            <Image
-              src={preview}
-              alt="Preview"
-              fill
-              className="rounded-md border border-border object-cover"
-            />
-          </div>
-        ) : (
-          <div className="text-xs text-foreground/50">
-            PNG, JPG up to a few MB.
+        {isUploading && (
+          <div className="flex items-center gap-2 text-sm text-primary">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Uploading file...</span>
           </div>
         )}
+        {preview && !isUploading ? (
+          <div className="mt-2 relative w-full h-48">
+            {file?.type.startsWith("video/") ? (
+              <video
+                src={preview}
+                controls
+                className="w-full h-full rounded-md border border-border object-cover"
+              />
+            ) : (
+              <Image
+                src={preview}
+                alt="Preview"
+                fill
+                className="rounded-md border border-border object-cover"
+              />
+            )}
+          </div>
+        ) : !isUploading ? (
+          <div className="text-xs text-foreground/50">
+            PNG, JPG, MP4, MOV up to 10MB.
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center justify-between gap-2 pt-2">
@@ -349,7 +411,11 @@ export default function PredictionForm() {
           className="px-4 py-2 rounded-md bg-primary text-primary-foreground glow flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {isLoading ? "Creating..." : "Create Prediction"}
+          {isUploading
+            ? "Uploading..."
+            : isLoading
+            ? "Creating..."
+            : "Create Prediction"}
         </button>
       </div>
 

@@ -144,12 +144,47 @@ export const uploadApi = {
   async uploadImage(file: File): Promise<{
     success: boolean;
     url: string;
-    filename: string;
+    key: string;
+    originalName: string;
+    size: number;
+    type: string;
+    fileType: "image" | "video";
   }> {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${API_BASE}/upload`, {
+    // Determine file type
+    const isVideo = file.type.startsWith("video/");
+    formData.append("fileType", isVideo ? "video" : "image");
+
+    const response = await fetch(`${API_BASE}upload`, {
+      method: "POST",
+      body: formData,
+      // Don't set Content-Type header - browser will set it with boundary for FormData
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(response.status, error.error || "Upload failed");
+    }
+
+    return response.json();
+  },
+
+  async uploadVideo(file: File): Promise<{
+    success: boolean;
+    url: string;
+    key: string;
+    originalName: string;
+    size: number;
+    type: string;
+    fileType: "video";
+  }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("fileType", "video");
+
+    const response = await fetch(`${API_BASE}upload`, {
       method: "POST",
       body: formData,
     });
