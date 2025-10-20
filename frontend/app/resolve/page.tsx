@@ -81,7 +81,7 @@ export default function ResolvePage() {
   const fetchPriceFromHermes = async (feedId: string, timestamp?: number) => {
     try {
       // Use current timestamp if not provided      
-      const hermesUrl = `https://hermes.pyth.network/v2/updates/price/${currentTimestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
+      const hermesUrl = `https://hermes.pyth.network/v2/updates/price/${timestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
 
       console.log("🔍 Fetching price from Hermes API:", hermesUrl);
 
