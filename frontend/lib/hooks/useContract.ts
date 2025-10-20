@@ -8,6 +8,7 @@ import type { TradeDirection } from "@/lib/types";
 import { getPublicClient, getWalletClient } from "../web3";
 import { ERC20_ABI, PREDICTION_ABI, PREDICTION_FACTORY_ABI } from "@/lib/web3/abi";
 import { PREDICTION_FACTORY_ADDRESS, STAKE_TOKEN_ADDRESS } from "../web3/address";
+import { decodeEventLog } from "viem";
 
 export function useContract() {
   const { wallets } = useWallets();
@@ -50,7 +51,8 @@ export function useContract() {
     targetPrice: number;
     endTime: Date;
     metadataURI?: string;
-  }): Promise<string> => {
+    initialLiquidity: number;
+  }): Promise<string[]> => {
     if (!primaryWallet) {
       throw new Error("No wallet connected");
     }
@@ -62,11 +64,26 @@ export function useContract() {
       const provider = await primaryWallet.getEthereumProvider();
 
       const walletClient = getWalletClient(provider);
+      const publicClient = getPublicClient(provider);
+      //Approve token for spending
+      const approveAmount = parseEther("1000");
+      const approveHash = await walletClient.writeContract({
+        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [PREDICTION_FACTORY_ADDRESS as `0x${string}`, approveAmount],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      console.log("Approve transaction hash:", approveHash);
+
+      await publicClient.waitForTransactionReceipt({ hash: approveHash });
+
 
       // Convert parameters
       const directionEnum = params.direction === "LONG" ? 0 : 1; // 0 = Up, 1 = Down
       const targetPriceWei = BigInt(Math.floor(params.targetPrice * 100000000)); // Convert to 8 decimals
       const endTimeUnix = BigInt(Math.floor(params.endTime.getTime() / 1000));
+      const initialLiquidityWei = BigInt(Math.floor(params.initialLiquidity * 1000000));
 
       // Call createPrediction on factory
       const hash = await walletClient.writeContract({
@@ -79,20 +96,60 @@ export function useContract() {
           targetPriceWei,
           endTimeUnix,
           params.metadataURI || "",
+          initialLiquidityWei
         ],
         account: primaryWallet.address as `0x${string}`,
       });
+      console.log("Create prediction transaction hash:", hash);
 
       // Wait for transaction confirmation
-      // Note: You might want to add a publicClient to wait for the receipt
-      console.log("Transaction hash:", hash);
+      const predictionReceipt = await publicClient.waitForTransactionReceipt({ hash });
+      
+      // Method 1: Extract from contractAddress (for direct deployments)
+      let  PredictionContractAddress = predictionReceipt.contractAddress;
+      
+      
+      console.log("✅ Prediction contract deployed at:", PredictionContractAddress);
 
-      // For now, we'll return a placeholder
-      // In production, you should parse the transaction receipt to get the actual address
-      // You can emit an event from the contract and parse it here
+      //deploy Yes and No tokens
+      const yesTokenHash = await walletClient.writeContract({
+        address: PredictionContractAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "initializeYesToken",
+        args: [],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      const yesTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: yesTokenHash });
+      const yesTokenAddress = yesTokenReceipt.contractAddress;
+      console.log("✅ Yes token deployed at:", yesTokenAddress);
+
+      const noTokenHash = await walletClient.writeContract({
+        address: PredictionContractAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "initializeNoToken",
+        args: [],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: noTokenHash });
+      const noTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: yesTokenHash });
+      const noTokenAddress= noTokenReceipt.contractAddress;
+      console.log("✅ No token deployed at:", noTokenAddress);
+
+      //initialize market
+      const initializeMarketHash = await walletClient.writeContract({
+        address: PredictionContractAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "initializeMarket",
+        args: [],
+        account: primaryWallet.address as `0x${string}`,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: initializeMarketHash });
+
+      console.log("Yes token transaction hash:", yesTokenHash);
+      console.log("No token transaction hash:", noTokenHash);
 
       setIsLoading(false);
-      return hash; // Temporary: return tx hash as placeholder for address
+      return [String(PredictionContractAddress), String(yesTokenAddress), String(noTokenAddress)]; // Return the actual deployed contract address
     } catch (err: any) {
       const errorMsg = err.message || "Failed to create prediction";
       setError(errorMsg);

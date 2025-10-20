@@ -7,6 +7,7 @@ import { useUserStore, usePredictionsStore } from "@/lib/store";
 import { predictionApi, uploadApi } from "@/lib/api";
 import type { TradeDirection } from "@/lib/types";
 import { Loader2 } from "lucide-react";
+import {useSendTransaction} from '@privy-io/react-auth';
 
 export default function PredictionForm() {
   const [title, setTitle] = useState("");
@@ -64,16 +65,16 @@ export default function PredictionForm() {
 
       // TODO: This is a hook for blockchain integration
       // Uncomment when you have deployed contracts
-      // const contractAddress = await createPrediction({
-      //   pairName,
-      //   direction,
-      //   targetPrice: parseFloat(targetPrice),
-      //   endTime,
-      //   metadataURI: JSON.stringify({ title, description, imageUrl }),
-      // })
+      const contractAddress = await createPrediction({
+        pairName,
+        direction,
+        targetPrice: parseFloat(targetPrice),
+        endTime,
+        metadataURI: JSON.stringify({ title, description, imageUrl }),
+      })
 
       // For now, use a placeholder address
-      const contractAddress = `0x${Math.random().toString(16).slice(2, 42)}`;
+      // const contractAddress = `0x${Math.random().toString(16).slice(2, 42)}`;
 
       // 3. Create prediction in database
       const prediction = await predictionApi.create({
