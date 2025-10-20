@@ -368,7 +368,7 @@ interface PredictionsState {
 }
 
 export const usePredictionsStore = create<PredictionsState>((set, get) => ({
-  predictions: DUMMY_PREDICTIONS,
+  predictions: [],
   isLoading: false,
   isLoadingMore: false,
   hasMore: true,
@@ -394,7 +394,7 @@ export const usePredictionsStore = create<PredictionsState>((set, get) => ({
 
       set({
         predictions: reset
-          ? DUMMY_PREDICTIONS
+          ? [...state.predictions, ...response.predictions]
           : [...state.predictions, ...response.predictions],
         hasMore: response.hasMore,
         isLoading: false,
