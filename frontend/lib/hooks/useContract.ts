@@ -87,6 +87,8 @@ export function useContract() {
       // Note: You might want to add a publicClient to wait for the receipt
       console.log("Transaction hash:", hash);
 
+
+
       // For now, we'll return a placeholder
       // In production, you should parse the transaction receipt to get the actual address
       // You can emit an event from the contract and parse it here
