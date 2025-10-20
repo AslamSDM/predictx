@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
       orderId,
       expiresAt,
       address, // Contract address from blockchain
+      yesTokenAddress,
+      noTokenAddress,
     } = await request.json();
 
     if (
@@ -25,7 +27,9 @@ export async function POST(request: NextRequest) {
       !symbol ||
       !direction ||
       !expiresAt ||
-      !address
+      !address ||
+      !yesTokenAddress ||
+      !noTokenAddress
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -46,7 +50,9 @@ export async function POST(request: NextRequest) {
         tradeImage,
         orderId,
         expiresAt: new Date(expiresAt),
-        address, // Store contract address
+        address, // Store prediction contract address
+        yesTokenAddress: yesTokenAddress ? new Prisma.Decimal(yesTokenAddress) : null, // Store yes token address
+        noTokenAddress: noTokenAddress ? new Prisma.Decimal(noTokenAddress) : null, // Store no token address
         status: "ACTIVE",
       },
       include: {

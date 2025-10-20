@@ -41,9 +41,8 @@ model Prediction {
     totalPool   Decimal          @default(0)
     yesPool     Decimal          @default(0)
     noPool      Decimal          @default(0)
-    yesTokenAddress String
-    noTokenAddress String
-    predictionContractAddress String
+    yesTokenAddress String?
+    noTokenAddress String?
     // Timing
     expiresAt  DateTime
     resolvedAt DateTime?

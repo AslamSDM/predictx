@@ -7,7 +7,6 @@ import { useUserStore, usePredictionsStore } from "@/lib/store";
 import { predictionApi, uploadApi } from "@/lib/api";
 import type { TradeDirection } from "@/lib/types";
 import { Loader2 } from "lucide-react";
-import {useSendTransaction} from '@privy-io/react-auth';
 
 export default function PredictionForm() {
   const [title, setTitle] = useState("");
@@ -15,7 +14,7 @@ export default function PredictionForm() {
   const [symbol, setSymbol] = useState("");
   const [entryPrice, setEntryPrice] = useState("");
   const [targetPrice, setTargetPrice] = useState("");
-  const [orderId, setOrderId] = useState("");
+  const [initialLiquidity, setInitialLiquidity] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [deadline, setDeadline] = useState("");
   const [direction, setDirection] = useState<TradeDirection>("LONG");
@@ -26,6 +25,12 @@ export default function PredictionForm() {
   const { user } = useUserStore();
   const { addPrediction } = usePredictionsStore();
   const { createPrediction, isLoading: isContractLoading } = useContract();
+
+  // Helper function to get minimum allowed time (1 hour from now)
+  const getMinimumTime = () => {
+    const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+    return oneHourFromNow.toISOString().slice(0, 16);
+  };
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -47,6 +52,23 @@ export default function PredictionForm() {
       return;
     }
 
+    // Validate expiration time (must be at least 1 hour from now)
+    const selectedTime = new Date(deadline);
+    const now = new Date();
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+
+    if (selectedTime <= oneHourFromNow) {
+      setError("Expiration time must be at least 1 hour from now");
+      return;
+    }
+
+    // Validate initial liquidity
+    const liquidityAmount = parseFloat(initialLiquidity);
+    if (isNaN(liquidityAmount) || liquidityAmount <= 0) {
+      setError("Initial liquidity must be a positive number");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -62,19 +84,20 @@ export default function PredictionForm() {
       // Convert symbol to uppercase for contract (e.g., "BTCUSD", "ETHUSD")
       const pairName = symbol.toUpperCase().replace("/", "");
       const endTime = new Date(deadline);
+      const initialLiquidityAmount = parseFloat(initialLiquidity);
 
       // TODO: This is a hook for blockchain integration
       // Uncomment when you have deployed contracts
-      const contractAddress = await createPrediction({
+      const contractAddresses = await createPrediction({
         pairName,
         direction,
         targetPrice: parseFloat(targetPrice),
         endTime,
         metadataURI: JSON.stringify({ title, description, imageUrl }),
+        initialLiquidity: initialLiquidityAmount,
       })
 
-      // For now, use a placeholder address
-      // const contractAddress = `0x${Math.random().toString(16).slice(2, 42)}`;
+
 
       // 3. Create prediction in database
       const prediction = await predictionApi.create({
@@ -85,12 +108,14 @@ export default function PredictionForm() {
         entryPrice: entryPrice ? parseFloat(entryPrice) : undefined,
         targetPrice: targetPrice ? parseFloat(targetPrice) : undefined,
         tradeImage: imageUrl,
-        orderId: orderId || undefined,
+        orderId: undefined, // No longer using orderId
         expiresAt: endTime,
         // @ts-ignore - we'll pass this along with creatorId
         creatorId: user.id,
         // @ts-ignore - we'll pass this too
-        address: contractAddress,
+        address: contractAddresses[0],
+        yesTokenAddress: contractAddresses[1],
+        noTokenAddress: contractAddresses[2],
       });
 
       // 4. Add to store
@@ -105,7 +130,7 @@ export default function PredictionForm() {
       setSymbol("");
       setEntryPrice("");
       setTargetPrice("");
-      setOrderId("");
+      setInitialLiquidity("");
       setFile(null);
       setPreview(null);
       setDeadline("");
@@ -246,22 +271,29 @@ export default function PredictionForm() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-sm text-foreground/80" htmlFor="orderId">
-            Order ID (optional)
+          <label className="text-sm text-foreground/80" htmlFor="initialLiquidity">
+            Initial Liquidity (PYUSD) *
           </label>
           <input
-            id="orderId"
+            id="initialLiquidity"
+            type="number"
+            step="0.01"
+            min="0"
             className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="e.g. MT5-12345678"
-            value={orderId}
-            onChange={(e) => setOrderId(e.target.value)}
+            placeholder="100.00"
+            value={initialLiquidity}
+            onChange={(e) => setInitialLiquidity(e.target.value)}
+            required
             disabled={isLoading}
           />
+          <div className="text-xs text-foreground/60">
+            Amount of PYUSD to provide as initial liquidity
+          </div>
         </div>
 
         <div className="space-y-1">
           <label className="text-sm text-foreground/80" htmlFor="deadline">
-            Expiration *
+            Expiration Date & Time *
           </label>
           <input
             id="deadline"
@@ -271,7 +303,13 @@ export default function PredictionForm() {
             onChange={(e) => setDeadline(e.target.value)}
             required
             disabled={isLoading}
+            min={getMinimumTime()} // Minimum 1 hour from now
           />
+          <div className="text-xs text-foreground/60">
+            When this prediction expires (minimum 1 hour from now)
+            <br />
+            <span className="text-primary">Earliest: {getMinimumTime().replace('T', ' ')}</span>
+          </div>
         </div>
       </div>
 
@@ -316,9 +354,9 @@ export default function PredictionForm() {
       </div>
 
       <div className="text-xs text-yellow-500/80 bg-yellow-500/10 border border-yellow-500/30 rounded-md p-3">
-        💡 <strong>Blockchain Hook:</strong> The smart contract integration is
-        ready but commented out. Deploy your contracts and update the{" "}
-        <code>NEXT_PUBLIC_FACTORY_ADDRESS</code> environment variable to enable.
+        💡 <strong>Smart Contract Integration:</strong> This form will deploy a prediction market contract, 
+        initialize YES/NO tokens, and set up the market with your initial liquidity. Make sure you have 
+        enough PYUSD tokens for the initial liquidity amount.
       </div>
     </form>
   );
