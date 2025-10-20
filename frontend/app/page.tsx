@@ -1,13 +1,23 @@
+"use client";
 import Link from "next/link";
 import SiteNav from "@/components/site-nav";
-
+import Silk from "@/components/silk";
 export default function Page() {
   return (
-    <main>
+    <main className="relative">
+      <div className="fixed inset-0 -z-10">
+        <Silk
+          speed={5}
+          scale={1}
+          color="#12a2c2ff"
+          noiseIntensity={1.5}
+          rotation={0}
+        />
+      </div>
       <section className="mx-auto max-w-6xl px-4 pt-10 pb-16">
         <div className="panel glow p-6 md:p-10">
           <h1 className="font-serif text-3xl md:text-5xl text-balance">
-            Bet on a trader’s individual call:
+            Bet on a trader's individual call:
             <span className="block text-primary mt-2">
               Will it hit TP or not?
             </span>
@@ -43,7 +53,7 @@ export default function Page() {
           <div className="panel p-4">
             <h3 className="font-serif text-lg">Launch</h3>
             <p className="text-sm text-foreground/70 mt-1">
-              Use an image or order ID and set expiration. Define your market’s
+              Use an image or order ID and set expiration. Define your market's
               rules.
             </p>
           </div>

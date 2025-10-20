@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
         description,
         symbol,
         direction,
-        entryPrice: entryPrice ? new Prisma.Decimal(entryPrice) : null,
-        targetPrice: targetPrice ? new Prisma.Decimal(targetPrice) : null,
+        entryPrice: entryPrice,
+        targetPrice: targetPrice,
         tradeImage,
         orderId,
         expiresAt: new Date(expiresAt),
         address, // Store prediction contract address
-        yesTokenAddress: yesTokenAddress ? new Prisma.Decimal(yesTokenAddress) : null, // Store yes token address
-        noTokenAddress: noTokenAddress ? new Prisma.Decimal(noTokenAddress) : null, // Store no token address
+        yesTokenAddress: yesTokenAddress, // Store yes token address
+        noTokenAddress: noTokenAddress, // Store no token address
         status: "ACTIVE",
       },
       include: {

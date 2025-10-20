@@ -57,15 +57,21 @@ export default function ResolvePage() {
   const getPythFeedId = (symbol: string): string | null => {
     // Convert symbol to uppercase and remove any slashes (e.g., "BTC/USD" -> "BTCUSD")
     const normalizedSymbol = symbol.toUpperCase().replace("/", "");
-    
+
     // Map symbols to their Pyth price feed IDs (from PredictionFactory.sol)
     const feedIdMap: Record<string, string> = {
-      "1INCHUSD": "0x63f341689d98a12ef60a5cff1d7f85c70a9e17bf1575f0e7c0b2512d48b1c8b3",
-      "AAVEUSD": "0x2b9ab1e972a281585084148ba1389800799bd4be63b957507db1349314e47445",
-      "BITCOINUSD": "0xc5e0e0c92116c0c070a242b254270441a6201af680a33e0381561c59db3266c9",
-      "BTCUSD": "0xc5e0e0c92116c0c070a242b254270441a6201af680a33e0381561c59db3266c9", // Alias for BITCOINUSD
-      "BNBUSD": "0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f",
-      "ETHUSD": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+      "1INCHUSD":
+        "0x63f341689d98a12ef60a5cff1d7f85c70a9e17bf1575f0e7c0b2512d48b1c8b3",
+      AAVEUSD:
+        "0x2b9ab1e972a281585084148ba1389800799bd4be63b957507db1349314e47445",
+      BITCOINUSD:
+        "0xc5e0e0c92116c0c070a242b254270441a6201af680a33e0381561c59db3266c9",
+      BTCUSD:
+        "0xc5e0e0c92116c0c070a242b254270441a6201af680a33e0381561c59db3266c9", // Alias for BITCOINUSD
+      BNBUSD:
+        "0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f",
+      ETHUSD:
+        "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
     };
 
     return feedIdMap[normalizedSymbol] || null;
@@ -76,23 +82,25 @@ export default function ResolvePage() {
     try {
       // Use current timestamp if not provided      
       const hermesUrl = `https://hermes.pyth.network/v2/updates/price/${currentTimestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
-      
+
       console.log("🔍 Fetching price from Hermes API:", hermesUrl);
-      
+
       const response = await fetch(hermesUrl, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'accept': 'application/json',
+          accept: "application/json",
         },
       });
 
       if (!response.ok) {
-        throw new Error(`Hermes API request failed: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Hermes API request failed: ${response.status} ${response.statusText}`
+        );
       }
 
       const data = await response.json();
       console.log("📊 Hermes API response:", data);
-      
+
       return data;
     } catch (error) {
       console.error("❌ Error fetching price from Hermes:", error);
@@ -118,9 +126,11 @@ export default function ResolvePage() {
 
       // Step 2: Get the Pyth price feed ID for this symbol
       const feedId = getPythFeedId(symbol);
-      
+
       if (!feedId) {
-        throw new Error(`Unsupported trading pair: ${symbol}. Supported pairs: 1INCH/USD, AAVE/USD, BTC/USD, BNB/USD, ETH/USD`);
+        throw new Error(
+          `Unsupported trading pair: ${symbol}. Supported pairs: 1INCH/USD, AAVE/USD, BTC/USD, BNB/USD, ETH/USD`
+        );
       }
 
       console.log("🔗 Using Pyth feed ID:", feedId);
@@ -187,9 +197,11 @@ export default function ResolvePage() {
         const error = await res.json();
         alert(error.error || "Failed to resolve prediction");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error resolving prediction:", error);
-      alert(`Failed to resolve prediction: ${error.message || "Please try again."}`);
+      alert(
+        `Failed to resolve prediction: ${error.message || "Please try again."}`
+      );
     } finally {
       setResolvingId(null);
     }
