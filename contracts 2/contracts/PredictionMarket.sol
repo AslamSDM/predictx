@@ -55,7 +55,10 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     PredictionMarketToken public yesToken;
     PredictionMarketToken public noToken;
 
-
+    struct Price {
+        uint256 base;
+        int32 expo;
+    }
  
     bool public isReported=false;
     PredictionMarketToken public winningToken;
@@ -69,14 +72,14 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     address public immutable pythContractAddress = 0xDd24F84d36BF92C65F92307595335bdFab5Bbd21;
     Direction public direction;
     bytes32 public pythPriceFeedId;
-    uint256 public targetPrice;
+    Price public targetPrice;
     string public pairName;
     address public factory;
     address public creator;
 
     PythStructs.PriceFeed public highPriceFeed;
     PythStructs.PriceFeed public lowPriceFeed;
-    PythStructs.PriceFeed public updatePriceFeed;
+    PythStructs.Price public updatePriceFeed;
 
     event TokensPurchased(address indexed buyer, Outcome outcome, uint256 amount, uint256 ethAmount);
     event TokensSold(address indexed seller, Outcome outcome, uint256 amount, uint256 ethAmount);
@@ -134,7 +137,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         string memory _pairName,
         Direction _direction,
         bytes32 _pythPriceFeedId,
-        uint256 _targetPrice,
+        Price memory _targetPrice,
         uint256 _endTime,
         string memory _metadataURI,
         uint256 _initialLiquidity
@@ -251,7 +254,7 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
 
     function _update_and_validate (
             bytes[] calldata _priceUpdateData
-    ) private nonReentrant returns (PythStructs.PriceFeed memory ) {
+    ) public payable returns (PythStructs.PriceFeed memory ) {
         IPyth pyth = IPyth(pythContractAddress);
         uint256 fees = pyth.getUpdateFee(_priceUpdateData);
         require(msg.value >= fees, "Insufficient funds"); //*2 just to incorporate updation fee also
@@ -274,7 +277,7 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
     //first send high price update data
     //then send low price update data
     //then send update price data
-    function report(bytes[] calldata _priceUpdateData) external payable nonReentrant  {
+    function report(bytes[] calldata _priceUpdateData) external payable   {
 
         if (isReported) {
             revert PredictionMarket__PredictionAlreadyReported();
@@ -299,7 +302,7 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
             isReported = true;
 
             if(direction == Direction.Up){
-            if(_normalizeTo8(uint256(int256(highPriceFeed.price.price)), highPriceFeed.price.expo) >= targetPrice){
+            if(_normalizeTo8(uint256(int256(highPriceFeed.price.price)), highPriceFeed.price.expo) >= _normalizeTo8(targetPrice.base,targetPrice.expo)){
                 outcome = Outcome.YES;
                 winningToken = yesToken;
             } else {
@@ -308,7 +311,7 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
             }
         }
         if(direction == Direction.Down){
-            if(_normalizeTo8(uint256(int256(lowPriceFeed.price.price)), lowPriceFeed.price.expo) <= targetPrice){
+            if(_normalizeTo8(uint256(int256(lowPriceFeed.price.price)), lowPriceFeed.price.expo) <=  _normalizeTo8(targetPrice.base,targetPrice.expo)){
                 outcome = Outcome.YES;
                 winningToken = yesToken;
             } else {
@@ -319,9 +322,9 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
         IPyth pyth = IPyth(pythContractAddress);
         uint256 updatefees = pyth.getUpdateFee(_priceUpdateData);
         pyth.updatePriceFeeds{ value: updatefees }(_priceUpdateData);
-        PythStructs.Price memory priceNow = pyth.getPriceNoOlderThan(pythPriceFeedId, 60);
+        updatePriceFeed = pyth.getPriceNoOlderThan(pythPriceFeedId, 60);
         emit MarketReported(msg.sender, outcome, address(winningToken));
-        emit CurrentPairTokenPrice(_normalizeTo8(uint256(int256(priceNow.price)), priceNow.expo));
+        emit CurrentPairTokenPrice(_normalizeTo8(uint256(int256(updatePriceFeed.price)), updatePriceFeed.expo));
         status = Status.PRICE_UPDATED;
         return;
         }
