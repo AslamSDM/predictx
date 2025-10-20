@@ -14,8 +14,9 @@ export function useContract() {
   const { wallets } = useWallets();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  console.log("wallets", wallets);
   const primaryWallet = wallets[0];
+  console.log("primaryWallet", primaryWallet);
 
 
   const getblockNumber = async () => {

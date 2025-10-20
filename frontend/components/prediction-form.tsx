@@ -6,8 +6,7 @@ import { useContract } from "@/lib/hooks/useContract";
 import { useUserStore, usePredictionsStore } from "@/lib/store";
 import { predictionApi, uploadApi } from "@/lib/api";
 import type { TradeDirection } from "@/lib/types";
-import { Loader2 } from "lucide-react";
-import{getHighAndLow} from "@/lib/hyperliquid";
+import { Loader2, Clock, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function PredictionForm() {
   const [title, setTitle] = useState("");
@@ -23,6 +22,10 @@ export default function PredictionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState({ hours: 12, minutes: 0 });
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { user } = useUserStore();
   const { addPrediction } = usePredictionsStore();
@@ -32,6 +35,61 @@ export default function PredictionForm() {
   const getMinimumTime = () => {
     const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
     return oneHourFromNow.toISOString().slice(0, 16);
+  };
+
+  // Date/Time picker helper functions
+  const formatDateTime = (date: Date, time: { hours: number; minutes: number }) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(time.hours).padStart(2, '0');
+    const minutes = String(time.minutes).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const isDateDisabled = (date: Date) => {
+    const now = new Date();
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+    return date < oneHourFromNow;
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+  };
+
+  const handleTimeChange = (type: 'hours' | 'minutes', value: number) => {
+    setSelectedTime(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  };
+
+  const handleDateTimeConfirm = () => {
+    if (selectedDate) {
+      const dateTimeString = formatDateTime(selectedDate, selectedTime);
+      setDeadline(dateTimeString);
+      setShowDateTimePicker(false);
+    }
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentMonth(prev => {
+      const newMonth = new Date(prev);
+      if (direction === 'prev') {
+        newMonth.setMonth(prev.getMonth() - 1);
+      } else {
+        newMonth.setMonth(prev.getMonth() + 1);
+      }
+      return newMonth;
+    });
   };
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
@@ -344,20 +402,74 @@ export default function PredictionForm() {
           <label className="text-sm text-foreground/80" htmlFor="deadline">
             Expiration Date & Time *
           </label>
-          <input
-            id="deadline"
-            type="datetime-local"
-            className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            required
-            disabled={isLoading}
-            min={getMinimumTime()} // Minimum 1 hour from now
-          />
+          <div className="relative">
+            <input
+              id="deadline"
+              type="text"
+              className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary pr-10 cursor-pointer"
+              value={deadline ? new Date(deadline).toLocaleString() : ''}
+              onClick={() => setShowDateTimePicker(true)}
+              placeholder="Click to select date and time"
+              required
+              disabled={isLoading}
+              readOnly
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <Calendar className="w-4 h-4 text-foreground/40" />
+            </div>
+          </div>
           <div className="text-xs text-foreground/60">
             When this prediction expires (minimum 1 hour from now)
             <br />
             <span className="text-primary">Earliest: {getMinimumTime().replace('T', ' ')}</span>
+          </div>
+          
+          {/* Quick time presets */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => {
+                const time = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+                setDeadline(time.toISOString().slice(0, 16));
+              }}
+              disabled={isLoading}
+              className="px-2 py-1 text-xs bg-background border border-border rounded hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              1 Hour
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const time = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours
+                setDeadline(time.toISOString().slice(0, 16));
+              }}
+              disabled={isLoading}
+              className="px-2 py-1 text-xs bg-background border border-border rounded hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              6 Hours
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const time = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day
+                setDeadline(time.toISOString().slice(0, 16));
+              }}
+              disabled={isLoading}
+              className="px-2 py-1 text-xs bg-background border border-border rounded hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              1 Day
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const time = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 1 week
+                setDeadline(time.toISOString().slice(0, 16));
+              }}
+              disabled={isLoading}
+              className="px-2 py-1 text-xs bg-background border border-border rounded hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              1 Week
+            </button>
           </div>
         </div>
       </div>
@@ -425,6 +537,136 @@ export default function PredictionForm() {
         initialize YES/NO tokens, and set up the market with your initial liquidity. Make sure you have 
         enough PYUSD tokens for the initial liquidity amount.
       </div>
+
+      {/* Custom Date/Time Picker Modal */}
+      {showDateTimePicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Select Date & Time</h3>
+                <button
+                  onClick={() => setShowDateTimePicker(false)}
+                  className="text-foreground/60 hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              {/* Calendar */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={() => navigateMonth('prev')}
+                    className="p-1 hover:bg-background rounded"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <h4 className="font-medium">
+                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </h4>
+                  <button
+                    onClick={() => navigateMonth('next')}
+                    className="p-1 hover:bg-background rounded"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                    <div key={day} className="text-xs text-foreground/60 text-center py-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map((_, i) => (
+                    <div key={`empty-${i}`} className="h-8" />
+                  ))}
+                  {Array.from({ length: getDaysInMonth(currentMonth) }, (_, i) => {
+                    const day = i + 1;
+                    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+                    const isDisabled = isDateDisabled(date);
+                    const isSelected = selectedDate && 
+                      selectedDate.getDate() === day && 
+                      selectedDate.getMonth() === currentMonth.getMonth() &&
+                      selectedDate.getFullYear() === currentMonth.getFullYear();
+                    
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => !isDisabled && handleDateSelect(date)}
+                        disabled={isDisabled}
+                        className={`h-8 text-sm rounded hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                          isSelected ? 'bg-primary text-primary-foreground' : ''
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Time Picker */}
+              <div className="mb-6">
+                <h4 className="font-medium mb-3">Select Time</h4>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs text-foreground/60 mb-1 block">Hours</label>
+                    <select
+                      value={selectedTime.hours}
+                      onChange={(e) => handleTimeChange('hours', parseInt(e.target.value))}
+                      className="w-full rounded-md bg-background border border-border px-3 py-2 text-sm"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i}>
+                          {String(i).padStart(2, '0')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-foreground/60 mb-1 block">Minutes</label>
+                    <select
+                      value={selectedTime.minutes}
+                      onChange={(e) => handleTimeChange('minutes', parseInt(e.target.value))}
+                      className="w-full rounded-md bg-background border border-border px-3 py-2 text-sm"
+                    >
+                      {Array.from({ length: 60 }, (_, i) => (
+                        <option key={i} value={i}>
+                          {String(i).padStart(2, '0')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowDateTimePicker(false)}
+                  className="flex-1 px-4 py-2 rounded-md border border-border hover:bg-background transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDateTimeConfirm}
+                  disabled={!selectedDate}
+                  className="flex-1 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
