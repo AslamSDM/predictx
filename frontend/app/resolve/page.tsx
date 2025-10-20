@@ -5,6 +5,8 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { useUserStore } from "@/lib/store";
 import { getHighAndLow } from "@/lib/hyperliquid";
 import { useContract } from "@/lib/hooks/useContract";
+import type { PythPriceFeed } from "@/lib/types/pyth";
+import { extractPriceValue, extractPriceConfidence, extractPublishTime } from "@/lib/types/pyth";
 import {
   Clock,
   TrendingUp,
@@ -27,7 +29,7 @@ export default function ResolvePage() {
   const [selectedPrediction, setSelectedPrediction] =
     useState<PredictionWithRelations | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
-  const { resolvePrediction, isLoading: isContractLoading } = useContract();
+  const { resolvePrediction,getOutcome, isLoading: isContractLoading } = useContract();
 
   // Fetch expired predictions that need resolution
   useEffect(() => {
@@ -78,7 +80,7 @@ export default function ResolvePage() {
   };
 
   // Helper function to fetch price data from Hermes API
-  const fetchPriceFromHermes = async (feedId: string, timestamp?: number) => {
+  const fetchPriceFromHermes = async (feedId: string, timestamp?: number): Promise<PythPriceFeed> => {
     try {
       // Use current timestamp if not provided      
       const hermesUrl = `https://hermes.pyth.network/v2/updates/price/${timestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
@@ -98,7 +100,7 @@ export default function ResolvePage() {
         );
       }
 
-      const data = await response.json();
+      const data: PythPriceFeed = await response.json();
       console.log("📊 Hermes API response:", data);
 
       return data;
@@ -144,15 +146,24 @@ export default function ResolvePage() {
       });
       console.log("🔍 High and low prices:", high, low);
 
-      let highPriceData;
-      let lowPriceData;
-      let currentPriceData;
+      let highPriceData: PythPriceFeed | null;
+      let lowPriceData: PythPriceFeed | null;
+      let currentPriceData: PythPriceFeed | null;
       try {
         const currentTimestamp = Math.floor(Date.now() / 1000);
         highPriceData = await fetchPriceFromHermes(feedId, high.timestamp);
         lowPriceData = await fetchPriceFromHermes(feedId, low.timestamp);
         currentPriceData = await fetchPriceFromHermes(feedId, currentTimestamp);
+        
+        // Extract actual price values
+        const highPrice = extractPriceValue(highPriceData);
+        const lowPrice = extractPriceValue(lowPriceData);
+        const currentPrice = extractPriceValue(currentPriceData);
+        
         console.log("✅ Successfully fetched price data:");
+        console.log("📈 High price:", highPrice);
+        console.log("📉 Low price:", lowPrice);
+        console.log("💰 Current price:", currentPrice);
       } catch (hermesError) {
         console.error("❌ Failed to fetch price from Hermes:", hermesError);
         // Continue with resolution even if price fetch fails
@@ -164,21 +175,28 @@ export default function ResolvePage() {
 
       const [resolveP1Hash, resolveP2Hash, resolveP3Hash] = await resolvePrediction({
         predictionAddress: prediction.address,
-        highPriceData: highPriceData,
-        lowPriceData: lowPriceData,
-        currentPriceData: currentPriceData,
+        highPriceData: highPriceData?.binary.data[0] || null,
+        lowPriceData: lowPriceData?.binary.data[0]  || null,
+        currentPriceData: currentPriceData?.binary.data[0] || null
       });
+
+      const outcome = await getOutcome(prediction.address);
+      if (outcome === null || outcome === undefined) {
+        throw new Error("Failed to get outcome");
+      }
 
       // Step 4: Send resolution request to backend with price data
       const res = await fetch(`/api/predictions/${prediction.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          outcome,
+          outcome: outcome === 0 ? "YES" : "NO",
           resolvedBy: user.id,
           symbol,
           feedId,
-          priceData, // Include the fetched price data
+          highPriceData: highPriceData ? JSON.stringify(highPriceData) : null,
+          lowPriceData: lowPriceData ? JSON.stringify(lowPriceData) : null,
+          currentPriceData: currentPriceData ? JSON.stringify(currentPriceData) : null,
         }),
       });
 

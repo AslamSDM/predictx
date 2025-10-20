@@ -241,9 +241,9 @@ export function useContract() {
 
   const resolvePrediction = async (params: {
     predictionAddress: string;
-    highPriceData:string;
-    lowPriceData:string;
-    currentPriceData:string;
+    highPriceData: string | null;
+    lowPriceData: string | null;
+    currentPriceData: string | null;
   }): Promise<string[]> => {
     if (!primaryWallet) {
       throw new Error("No wallet connected");
@@ -328,11 +328,35 @@ export function useContract() {
     }
   };
 
+  const getOutcome = async (predictionAddress: string): Promise<number> => {
+    if (!primaryWallet) {
+      throw new Error("No wallet connected");
+    }
+
+    try {
+      const provider = await primaryWallet.getEthereumProvider();
+      const publicClient = getPublicClient(provider);
+
+      const outcome = await publicClient.readContract({
+        address: predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "outcome",
+      });
+
+      return Number(outcome);
+    } catch (err: any) {
+      const errorMsg = err.message || "Failed to get outcome";
+      setError(errorMsg);
+      setIsLoading(false);
+      throw new Error(errorMsg);
+    }
+  }
   return {
     createPrediction,
     placeBet,
     getPredictionPools,
     resolvePrediction,
+    getOutcome,
     isLoading,
     error,
     isConnected: !!primaryWallet,
