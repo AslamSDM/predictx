@@ -1,64 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
+import { R2Storage } from "@/lib/r2-store";
+import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.formData();
-    const file: File | null = data.get("file") as unknown as File;
+    // Check authentication
+
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const fileType = formData.get("fileType") as string; // 'image' or 'video'
 
     if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No file provided",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (limit to 100MB)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "File size too large. Maximum allowed size is 100MB.",
+        },
+        { status: 400 }
+      );
     }
 
     // Validate file type
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+
+    if (!isImage && !isVideo) {
       return NextResponse.json(
-        { error: "Invalid file type. Only JPEG, PNG, and WebP are allowed." },
+        {
+          success: false,
+          error: "Only image and video files are supported.",
+        },
         { status: 400 }
       );
     }
 
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: "File too large. Maximum size is 5MB." },
-        { status: 400 }
-      );
-    }
-
+    // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const userId = randomUUID();
+    // Generate unique key for R2 storage
+    const fileKey = R2Storage.generateFileKey(userId, file.name, "input");
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
+    console.log("Uploading file to R2:", {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      key: fileKey,
+      bufferSize: buffer.length,
+      originalMimeType: file.type,
+    });
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const extension = file.name.split(".").pop();
-    const filename = `${timestamp}-${randomString}.${extension}`;
+    // Upload file to R2
+    const r2Url = await R2Storage.uploadFile(
+      fileKey,
+      new Uint8Array(buffer),
+      file.type,
+      {
+        "original-name": file.name,
+        "uploaded-by": userId,
+        "upload-timestamp": new Date().toISOString(),
+      }
+    );
 
-    const filepath = join(uploadsDir, filename);
-    await writeFile(filepath, buffer);
-
-    const fileUrl = `/uploads/${filename}`;
+    console.log("File uploaded successfully to R2:", {
+      url: r2Url,
+      key: fileKey,
+      preservedType: file.type,
+    });
 
     return NextResponse.json({
       success: true,
-      url: fileUrl,
-      filename,
+      url: r2Url,
+      key: fileKey,
+      originalName: file.name,
+      size: file.size,
+      type: file.type,
+      fileType: isVideo ? "video" : "image",
     });
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Error uploading file to Replicate:", error);
     return NextResponse.json(
-      { error: "Failed to upload file" },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to upload file",
+      },
       { status: 500 }
     );
   }
