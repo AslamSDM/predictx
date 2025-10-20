@@ -2,84 +2,12 @@
 
 import { useWallets } from "@privy-io/react-auth";
 import { useState } from "react";
-import { createWalletClient, custom, parseEther, formatEther } from "viem";
-import { sepolia, optimismSepolia } from "viem/chains";
+import { parseEther } from "viem";
 import type { TradeDirection } from "@/lib/types";
 
-// Replace these with your actual deployed contract addresses
-const PREDICTION_FACTORY_ADDRESS =
-  (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`) ||
-  "0x0000000000000000000000000000000000000000";
-const STAKE_TOKEN_ADDRESS =
-  (process.env.NEXT_PUBLIC_STAKE_TOKEN_ADDRESS as `0x${string}`) ||
-  "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9";
-
-// ABI fragments - only include what we need
-const FACTORY_ABI = [
-  {
-    inputs: [
-      { name: "_pairName", type: "string" },
-      { name: "_direction", type: "uint8" }, // 0 = Up, 1 = Down
-      { name: "_targetPrice", type: "uint256" },
-      { name: "_endTime", type: "uint256" },
-      { name: "_metadataURI", type: "string" },
-    ],
-    name: "createPrediction",
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
-
-const PREDICTION_ABI = [
-  {
-    inputs: [
-      { name: "_supportsOutcome", type: "bool" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "vote",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "yesPool",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "noPool",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
-const ERC20_ABI = [
-  {
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "approve",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
-    ],
-    name: "allowance",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
+import { getPublicClient, getWalletClient } from "../web3";
+import { ERC20_ABI, PREDICTION_ABI, PREDICTION_FACTORY_ABI } from "@/lib/web3/abi";
+import { PREDICTION_FACTORY_ADDRESS, STAKE_TOKEN_ADDRESS } from "../web3/address";
 
 export function useContract() {
   const { wallets } = useWallets();
@@ -87,6 +15,30 @@ export function useContract() {
   const [error, setError] = useState<string | null>(null);
 
   const primaryWallet = wallets[0];
+
+
+  const getblockNumber = async () => {
+
+    if (!primaryWallet) {
+      throw new Error("No wallet connected");
+    }
+
+    try {
+      const provider = await primaryWallet.getEthereumProvider();
+      const wallet = getPublicClient(provider);
+      const num = await wallet.getBlockNumber();
+
+      console.log(num)
+    } catch (err: any) {
+      const errorMsg = err.message || "Failed to create prediction";
+      setError(errorMsg);
+      setIsLoading(false);
+      throw new Error(errorMsg);
+    }
+
+
+  }
+
 
   /**
    * Create a prediction market on-chain
@@ -109,10 +61,7 @@ export function useContract() {
     try {
       const provider = await primaryWallet.getEthereumProvider();
 
-      const walletClient = createWalletClient({
-        chain: optimismSepolia, // Change to your target chain
-        transport: custom(provider),
-      });
+      const walletClient = getWalletClient(provider);
 
       // Convert parameters
       const directionEnum = params.direction === "LONG" ? 0 : 1; // 0 = Up, 1 = Down
@@ -121,8 +70,8 @@ export function useContract() {
 
       // Call createPrediction on factory
       const hash = await walletClient.writeContract({
-        address: PREDICTION_FACTORY_ADDRESS,
-        abi: FACTORY_ABI,
+        address: PREDICTION_FACTORY_ADDRESS as `0x${string}`,
+        abi: PREDICTION_FACTORY_ABI,
         functionName: "createPrediction",
         args: [
           params.pairName,
@@ -170,10 +119,7 @@ export function useContract() {
     try {
       const provider = await primaryWallet.getEthereumProvider();
 
-      const walletClient = createWalletClient({
-        chain: optimismSepolia,
-        transport: custom(provider),
-      });
+      const walletClient = getWalletClient(provider);
 
       const amountWei = parseEther(params.amount.toString());
 
@@ -223,10 +169,8 @@ export function useContract() {
     try {
       const provider = await primaryWallet.getEthereumProvider();
 
-      const walletClient = createWalletClient({
-        chain: optimismSepolia,
-        transport: custom(provider),
-      });
+      const walletClient = getWalletClient(provider);
+
 
       // Read yesPool and noPool
       // Note: You'll need a publicClient for read operations
@@ -249,5 +193,6 @@ export function useContract() {
     isLoading,
     error,
     isConnected: !!primaryWallet,
+    getblockNumber
   };
 }
