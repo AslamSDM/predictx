@@ -165,7 +165,11 @@ export default function DiscoverPage() {
   }
 
   // Show end state when all predictions are viewed
-  if (currentIndex >= predictions.length && !hasMore && predictions.length > 0) {
+  if (
+    currentIndex >= predictions.length &&
+    !hasMore &&
+    predictions.length > 0
+  ) {
     return (
       <main className="min-h-screen bg-background">
         <section className="mx-auto max-w-6xl px-4 py-10">
@@ -223,7 +227,7 @@ export default function DiscoverPage() {
               <Loader2 className="w-3 h-3 animate-spin text-primary" />
             )}
           </div>
-          
+
           {/* Progress bar */}
           <div className="mt-2 w-full max-w-xs mx-auto h-1 bg-border rounded-full overflow-hidden">
             <div

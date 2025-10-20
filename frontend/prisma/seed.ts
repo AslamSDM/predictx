@@ -86,8 +86,191 @@ async function main() {
 
   console.log(`✅ Created ${users.length} users`);
 
-  // Sample prediction data
-  const predictionTemplates = [
+  // Expanded symbols for diverse predictions
+  const cryptoSymbols = [
+    "BTC/USD",
+    "ETH/USD",
+    "SOL/USD",
+    "DOGE/USD",
+    "LINK/USD",
+    "ADA/USD",
+    "MATIC/USD",
+    "XRP/USD",
+    "DOT/USD",
+    "AVAX/USD",
+    "UNI/USD",
+    "ATOM/USD",
+    "LTC/USD",
+    "BCH/USD",
+    "XLM/USD",
+    "ALGO/USD",
+    "VET/USD",
+    "FIL/USD",
+    "AAVE/USD",
+    "MKR/USD",
+    "COMP/USD",
+    "SUSHI/USD",
+    "CRV/USD",
+    "SNX/USD",
+  ];
+
+  const stockSymbols = [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "TSLA",
+    "NVDA",
+    "META",
+    "NFLX",
+    "AMD",
+    "INTC",
+    "PYPL",
+    "SQ",
+    "COIN",
+    "DIS",
+    "BA",
+    "JPM",
+    "GS",
+    "BAC",
+    "WMT",
+    "TGT",
+    "NKE",
+    "SBUX",
+    "MCD",
+    "V",
+  ];
+
+  const forexPairs = [
+    "EUR/USD",
+    "GBP/USD",
+    "USD/JPY",
+    "AUD/USD",
+    "USD/CAD",
+    "NZD/USD",
+  ];
+
+  const commodities = ["GC=F", "SI=F", "CL=F", "NG=F"];
+
+  const allSymbols = [
+    ...cryptoSymbols,
+    ...stockSymbols,
+    ...forexPairs,
+    ...commodities,
+  ];
+
+  const bullishDescriptions = [
+    "Strong bullish momentum with institutional buying. Technical analysis shows breakout pattern above key resistance.",
+    "Multiple indicators aligning including golden cross on daily chart, increasing volume, and whale accumulation.",
+    "RSI showing strength without being overbought. MACD crossover confirmed on 4H timeframe.",
+    "Breaking out of consolidation pattern. Volume surge indicates strong buying pressure.",
+    "Ascending triangle pattern forming. Higher lows showing accumulation phase.",
+    "Cup and handle formation complete. Expecting explosive move to upside.",
+    "Bullish engulfing candle on daily chart. Support holding strong at key level.",
+    "Moving averages showing bullish alignment. 50MA crossing above 200MA.",
+    "On-chain metrics showing accumulation by smart money. Exchange outflows increasing.",
+    "Network activity at all-time high. Developer activity surging.",
+    "Breaking above descending trendline resistance. Momentum shifting bullish.",
+    "Volume profile shows strong support zone below. Risk/reward favors longs.",
+  ];
+
+  const bearishDescriptions = [
+    "RSI showing bearish divergence on 4H chart. Expecting pullback to support level soon.",
+    "Price action showing weakness at current levels with declining volume on upside attempts.",
+    "Double top formation on daily chart. Distribution pattern evident.",
+    "Overbought conditions on multiple timeframes. Healthy pullback expected.",
+    "Breaking below key support level. Momentum turning negative.",
+    "Death cross forming on daily chart. 50MA about to cross below 200MA.",
+    "Bearish engulfing pattern confirmed. Sellers taking control.",
+    "Rising wedge pattern suggests impending breakdown. Volume declining on rallies.",
+    "MACD histogram showing bearish divergence. Selling pressure building.",
+    "Breaking down from head and shoulders pattern. Target measured move lower.",
+    "Support level becoming resistance. Failed breakout indicates weakness.",
+    "Distribution detected by volume analysis. Smart money exiting positions.",
+  ];
+
+  const images = [
+    "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1611532736570-e1e4263ce128?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1621504450181-5d356f61d307?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=800&h=600&fit=crop",
+  ];
+
+  // Generate prediction templates dynamically
+  const generatePredictionTemplate = (index: number) => {
+    const symbol = allSymbols[index % allSymbols.length];
+    const direction = Math.random() > 0.5 ? "LONG" : "SHORT";
+    const isCrypto =
+      symbol.includes("/USD") &&
+      !symbol.includes("EUR") &&
+      !symbol.includes("GBP") &&
+      !symbol.includes("AUD") &&
+      !symbol.includes("NZD") &&
+      !symbol.includes("JPY") &&
+      !symbol.includes("CAD");
+
+    // Generate realistic prices based on symbol type
+    let entryPrice: number;
+    let targetPrice: number;
+
+    if (symbol === "BTC/USD") {
+      entryPrice = 65000 + Math.random() * 10000;
+      targetPrice =
+        direction === "LONG" ? entryPrice * 1.08 : entryPrice * 0.92;
+    } else if (symbol === "ETH/USD") {
+      entryPrice = 3000 + Math.random() * 500;
+      targetPrice = direction === "LONG" ? entryPrice * 1.1 : entryPrice * 0.9;
+    } else if (isCrypto) {
+      entryPrice = Math.random() * 100 + 1;
+      targetPrice =
+        direction === "LONG" ? entryPrice * 1.15 : entryPrice * 0.85;
+    } else if (stockSymbols.includes(symbol)) {
+      entryPrice = 100 + Math.random() * 300;
+      targetPrice =
+        direction === "LONG" ? entryPrice * 1.06 : entryPrice * 0.94;
+    } else if (forexPairs.includes(symbol)) {
+      entryPrice = 0.8 + Math.random() * 0.4;
+      targetPrice =
+        direction === "LONG" ? entryPrice * 1.03 : entryPrice * 0.97;
+    } else {
+      entryPrice = 1000 + Math.random() * 1000;
+      targetPrice =
+        direction === "LONG" ? entryPrice * 1.05 : entryPrice * 0.95;
+    }
+
+    const descriptions =
+      direction === "LONG" ? bullishDescriptions : bearishDescriptions;
+    const description =
+      descriptions[Math.floor(Math.random() * descriptions.length)];
+
+    const directionText = direction === "LONG" ? "bullish on" : "bearish on";
+    const moveText = direction === "LONG" ? "rally to" : "drop to";
+
+    return {
+      title: `${symbol} ${moveText} $${targetPrice.toFixed(2)}`,
+      description,
+      symbol,
+      direction,
+      entryPrice: parseFloat(entryPrice.toFixed(2)),
+      targetPrice: parseFloat(targetPrice.toFixed(2)),
+      tradeImage: images[Math.floor(Math.random() * images.length)],
+      daysUntilExpiry: Math.floor(Math.random() * 12) + 3, // 3-14 days
+    };
+  };
+
+  // Generate 200 predictions
+  const predictionTemplates = Array.from({ length: 200 }, (_, i) =>
+    generatePredictionTemplate(i)
+  );
+
+  // Keep some original detailed predictions at the start
+  const featuredPredictions = [
     {
       title: "BTC will hit $75,000 by end of week",
       description:
@@ -112,132 +295,18 @@ async function main() {
         "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop",
       daysUntilExpiry: 5,
     },
-    {
-      title: "SOL breakout to $200",
-      description:
-        "Solana showing strong volume and breaking key resistance at $155. Target $200 within next week. Network activity increasing, new DeFi protocols launching.",
-      symbol: "SOL/USD",
-      direction: "LONG" as const,
-      entryPrice: 155.2,
-      targetPrice: 200.0,
-      tradeImage:
-        "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800&h=600&fit=crop",
-      daysUntilExpiry: 8,
-    },
-    {
-      title: "AAPL earnings beat incoming",
-      description:
-        "Strong iPhone sales data and services growth. Expecting 5% move up after earnings announcement. Supply chain data shows better than expected numbers.",
-      symbol: "AAPL",
-      direction: "LONG" as const,
-      entryPrice: 185.5,
-      targetPrice: 195.0,
-      tradeImage:
-        "https://images.unsplash.com/photo-1611532736570-e1e4263ce128?w=800&h=600&fit=crop",
-      daysUntilExpiry: 3,
-    },
-    {
-      title: "DOGE bearish reversal pattern",
-      description:
-        "Double top formation on daily chart. Expecting drop to $0.08 support. Meme coin hype cooling off, volume declining.",
-      symbol: "DOGE/USD",
-      direction: "SHORT" as const,
-      entryPrice: 0.12,
-      targetPrice: 0.08,
-      tradeImage:
-        "https://images.unsplash.com/photo-1621504450181-5d356f61d307?w=800&h=600&fit=crop",
-      daysUntilExpiry: 4,
-    },
-    {
-      title: "TSLA rally to $250",
-      description:
-        "Tesla showing strong accumulation pattern. Production numbers beating estimates. EV market share growing. Technical breakout confirmed.",
-      symbol: "TSLA",
-      direction: "LONG" as const,
-      entryPrice: 220.5,
-      targetPrice: 250.0,
-      tradeImage:
-        "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&h=600&fit=crop",
-      daysUntilExpiry: 10,
-    },
-    {
-      title: "LINK ready for pump",
-      description:
-        "Chainlink breaking consolidation. New partnerships announced. Oracle demand increasing across DeFi. Target $18.",
-      symbol: "LINK/USD",
-      direction: "LONG" as const,
-      entryPrice: 14.2,
-      targetPrice: 18.0,
-      tradeImage:
-        "https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=800&h=600&fit=crop",
-      daysUntilExpiry: 6,
-    },
-    {
-      title: "NVDA correction expected",
-      description:
-        "Overbought conditions on multiple timeframes. Expecting healthy pullback to $450. Profit taking likely after strong run.",
-      symbol: "NVDA",
-      direction: "SHORT" as const,
-      entryPrice: 485.0,
-      targetPrice: 450.0,
-      tradeImage:
-        "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=800&h=600&fit=crop",
-      daysUntilExpiry: 5,
-    },
-    {
-      title: "ADA bullish ascending triangle",
-      description:
-        "Cardano forming ascending triangle pattern. Network upgrades coming. Target $0.55. Volume increasing on bounces.",
-      symbol: "ADA/USD",
-      direction: "LONG" as const,
-      entryPrice: 0.42,
-      targetPrice: 0.55,
-      tradeImage:
-        "https://images.unsplash.com/photo-1621504450181-5d356f61d307?w=800&h=600&fit=crop",
-      daysUntilExpiry: 9,
-    },
-    {
-      title: "MATIC surge to $1.20",
-      description:
-        "Polygon showing strong fundamentals. L2 adoption growing. zkEVM gaining traction. Breaking resistance at $0.90.",
-      symbol: "MATIC/USD",
-      direction: "LONG" as const,
-      entryPrice: 0.88,
-      targetPrice: 1.2,
-      tradeImage:
-        "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop",
-      daysUntilExpiry: 7,
-    },
-    {
-      title: "Gold futures bearish breakdown",
-      description:
-        "Gold breaking key support at $1950. Dollar strength pressuring precious metals. Target $1850.",
-      symbol: "GC=F",
-      direction: "SHORT" as const,
-      entryPrice: 1940,
-      targetPrice: 1850,
-      tradeImage:
-        "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=800&h=600&fit=crop",
-      daysUntilExpiry: 12,
-    },
-    {
-      title: "XRP legal clarity pump",
-      description:
-        "Ripple case developments positive. Expecting rally on clarity. Target $0.80. Institutional interest returning.",
-      symbol: "XRP/USD",
-      direction: "LONG" as const,
-      entryPrice: 0.58,
-      targetPrice: 0.8,
-      tradeImage:
-        "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800&h=600&fit=crop",
-      daysUntilExpiry: 14,
-    },
+  ];
+
+  // Combine featured predictions with generated ones
+  const allPredictionTemplates = [
+    ...featuredPredictions,
+    ...predictionTemplates,
   ];
 
   // Create predictions
   console.log("📊 Creating predictions...");
   const predictions = await Promise.all(
-    predictionTemplates.map((template, i) => {
+    allPredictionTemplates.map((template, i) => {
       const creator = users[i % users.length];
       const basePool = Math.floor(Math.random() * 5000) + 500;
       const yesRatio = 0.3 + Math.random() * 0.4; // 30-70%
@@ -247,7 +316,7 @@ async function main() {
           title: template.title,
           description: template.description,
           symbol: template.symbol,
-          direction: template.direction,
+          direction: template.direction as "LONG" | "SHORT",
           entryPrice: new Decimal(template.entryPrice),
           targetPrice: new Decimal(template.targetPrice),
           tradeImage: template.tradeImage,
@@ -259,59 +328,55 @@ async function main() {
           totalPool: new Decimal(basePool),
           yesPool: new Decimal(Math.floor(basePool * yesRatio)),
           noPool: new Decimal(Math.floor(basePool * (1 - yesRatio))),
-          status: i > 10 ? "ACTIVE" : "ACTIVE", // All active for now
+          status: "ACTIVE", // All active
         },
       });
     })
   );
 
-  console.log(`✅ Created ${predictions.length} predictions`);
+  console.log(`✅ Created ${predictions.length} active predictions`);
 
-  // Create 2 resolved predictions (past)
+  // Create 10 resolved predictions (past) for variety
   console.log("🏆 Creating resolved predictions...");
-  const resolvedPredictions = await Promise.all([
-    prisma.prediction.create({
-      data: {
-        title: "BTC hit $70K - RESOLVED YES",
-        description:
-          "Bitcoin successfully broke through $70,000 resistance. Bulls won!",
-        symbol: "BTC/USD",
-        direction: "LONG",
-        entryPrice: new Decimal(65000),
-        targetPrice: new Decimal(70000),
-        tradeImage:
-          "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=800&h=600&fit=crop",
-        status: "RESOLVED_YES",
-        resolvedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        expiresAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        creatorId: users[0].id,
-        address: "",
-        totalPool: new Decimal(5000),
-        yesPool: new Decimal(3500),
-        noPool: new Decimal(1500),
-      },
-    }),
-    prisma.prediction.create({
-      data: {
-        title: "ETH drop to $2800 - RESOLVED NO",
-        description: "Ethereum held support, prediction did not hit target.",
-        symbol: "ETH/USD",
-        direction: "SHORT",
-        entryPrice: new Decimal(3200),
-        targetPrice: new Decimal(2800),
-        tradeImage:
-          "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop",
-        status: "RESOLVED_NO",
-        resolvedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        expiresAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        creatorId: users[1].id,
-        address: "",
-        totalPool: new Decimal(3000),
-        yesPool: new Decimal(1000),
-        noPool: new Decimal(2000),
-      },
-    }),
-  ]);
+  const resolvedPredictions = await Promise.all(
+    Array.from({ length: 10 }, (_, i) => {
+      const template = generatePredictionTemplate(i + 1000);
+      const daysAgo = Math.floor(Math.random() * 7) + 1; // 1-7 days ago
+      const isYesWin = Math.random() > 0.5;
+      const basePool = Math.floor(Math.random() * 8000) + 2000;
+      const yesRatio = isYesWin ? 0.6 : 0.4;
+
+      return prisma.prediction.create({
+        data: {
+          title: `${template.symbol} ${
+            isYesWin ? "✅ HIT TARGET" : "❌ MISSED"
+          } - RESOLVED`,
+          description: isYesWin
+            ? `Target achieved! ${
+                template.symbol
+              } reached $${template.targetPrice.toFixed(2)} as predicted.`
+            : `Target not reached. ${
+                template.symbol
+              } did not hit $${template.targetPrice.toFixed(2)} before expiry.`,
+          symbol: template.symbol,
+          direction: template.direction as "LONG" | "SHORT",
+          entryPrice: new Decimal(template.entryPrice),
+          targetPrice: new Decimal(template.targetPrice),
+          tradeImage: template.tradeImage,
+          status: (isYesWin ? "RESOLVED_YES" : "RESOLVED_NO") as
+            | "RESOLVED_YES"
+            | "RESOLVED_NO",
+          resolvedAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000),
+          expiresAt: new Date(Date.now() - (daysAgo + 1) * 24 * 60 * 60 * 1000),
+          creatorId: users[i % users.length].id,
+          address: "",
+          totalPool: new Decimal(basePool),
+          yesPool: new Decimal(Math.floor(basePool * yesRatio)),
+          noPool: new Decimal(Math.floor(basePool * (1 - yesRatio))),
+        },
+      });
+    })
+  );
 
   console.log(`✅ Created ${resolvedPredictions.length} resolved predictions`);
 
