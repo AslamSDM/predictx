@@ -8,10 +8,7 @@ import {
   PlatformStats,
 } from "@/lib/types";
 
-const API_BASE =
-  process.env.NODE_ENV === "production"
-    ? "https://your-domain.com/api"
-    : "http://localhost:3000/api";
+const API_BASE = "/api/";
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
