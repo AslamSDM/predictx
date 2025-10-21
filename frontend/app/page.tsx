@@ -1,8 +1,31 @@
 "use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteNav from "@/components/site-nav";
 import Silk from "@/components/Silk";
+import { usePredictionsStore } from "@/lib/store";
+
 export default function Page() {
+  const { predictions, isLoading } = usePredictionsStore();
+  const [stats, setStats] = useState({
+    activePredictions: 0,
+    totalVolume: 0,
+  });
+
+  useEffect(() => {
+    // Update stats when predictions are loaded
+    if (predictions.length > 0) {
+      const totalVolume = predictions.reduce(
+        (sum, pred) => sum + Number(pred.totalPool || 0),
+        0
+      );
+      setStats({
+        activePredictions: predictions.length,
+        totalVolume,
+      });
+    }
+  }, [predictions]);
+
   return (
     <main className="relative">
       <div className="fixed inset-0 -z-10">
@@ -26,6 +49,25 @@ export default function Page() {
             Post a trade image or order ID, launch a prediction, and let the
             market decide. Connect your wallet to participate.
           </p>
+
+          {/* Live Stats */}
+          {predictions.length > 0 && (
+            <div className="mt-4 flex gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-foreground/60">Active Markets:</span>
+                <span className="font-bold text-primary">
+                  {stats.activePredictions}+
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-foreground/60">Total Volume:</span>
+                <span className="font-bold text-green-500">
+                  ${stats.totalVolume.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <Link
               href="/create"
@@ -37,7 +79,7 @@ export default function Page() {
               href="/discover"
               className="px-4 py-3 rounded-md border border-border text-center hover:border-primary hover:text-primary transition-colors"
             >
-              Discover Markets
+              Discover Markets {predictions.length > 0 && `(${predictions.length}+)`}
             </Link>
           </div>
         </div>

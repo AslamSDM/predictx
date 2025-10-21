@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono";
 import { Orbitron } from "next/font/google";
 import { Suspense } from "react";
 import InstallBanner from "@/components/install-banner";
+import BackgroundLoader from "@/components/background-loader";
 import "./globals.css";
 import Providers from "./Provider";
 import SiteNav from "@/components/site-nav";
@@ -68,6 +69,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans">
         <Providers>
+          <BackgroundLoader />
           <Suspense fallback={null}>
             <SiteNav />
             {children}

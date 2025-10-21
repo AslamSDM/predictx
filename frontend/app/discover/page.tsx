@@ -28,9 +28,12 @@ export default function DiscoverPage() {
     useState<PredictionWithRelations | null>(null);
   const [betPosition, setBetPosition] = useState<BetPosition>("YES");
 
-  // Load predictions on mount
+  // Load predictions on mount (if not already loaded by BackgroundLoader)
   useEffect(() => {
-    fetchPredictions(true);
+    if (predictions.length === 0 && !isLoading) {
+      console.log("🔄 Loading predictions on discover page...");
+      fetchPredictions(true);
+    }
   }, []);
 
   // Preload more predictions when getting close to the end
