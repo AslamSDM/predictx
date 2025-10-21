@@ -12,9 +12,8 @@ export default function PredictionForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [symbol, setSymbol] = useState("");
-  const [entryPrice, setEntryPrice] = useState("");
   const [targetPrice, setTargetPrice] = useState("");
-  const [initialLiquidity, setInitialLiquidity] = useState("");
+  const [initialLiquidity, setInitialLiquidity] = useState<number>(0);
   const [file, setFile] = useState<File | null>(null);
   const [deadline, setDeadline] = useState("");
   const [direction, setDirection] = useState<TradeDirection>("LONG");
@@ -144,12 +143,19 @@ export default function PredictionForm() {
       return;
     }
 
-    // Validate initial liquidity
-    const liquidityAmount = parseFloat(initialLiquidity);
-    if (isNaN(liquidityAmount) || liquidityAmount <= 0) {
-      setError("Initial liquidity must be a positive number");
+    // Validate target price
+    const targetPriceAmount = parseFloat(targetPrice);
+    if (isNaN(targetPriceAmount) || targetPriceAmount <= 0) {
+      setError("Target price must be a positive number");
       return;
     }
+
+    // Validate initial liquidity
+    // const liquidityAmount = parseFloat(initialLiquidity);
+    // if (isNaN(liquidityAmount) || liquidityAmount <= 0) {
+    //   setError("Initial liquidity must be a positive number");
+    //   return;
+    // }
 
     setIsSubmitting(true);
     setError(null);
@@ -189,17 +195,16 @@ export default function PredictionForm() {
       // Convert symbol to uppercase for contract (e.g., "BTCUSD", "ETHUSD")
       const pairName = symbol.toUpperCase().replace("/", "");
       const endTime = new Date(deadline);
-      const initialLiquidityAmount = parseFloat(initialLiquidity);
 
       // TODO: This is a hook for blockchain integration
       // Uncomment when you have deployed contracts
       const contractAddresses = await createPrediction({
         pairName,
         direction,
-        targetPrice: parseFloat(targetPrice),
-        endTime,
+        targetPrice: BigInt(Math.floor(targetPriceAmount * 100000000)).toString(),
+        endTime:    BigInt(Math.floor(endTime.getTime() / 1000)).toString(),
         metadataURI: JSON.stringify({ title, description, imageUrl }),
-        initialLiquidity: initialLiquidityAmount,
+        initialLiquidity: BigInt(Math.floor(initialLiquidity * 1000000)).toString(),
       })
 
 
@@ -210,8 +215,8 @@ export default function PredictionForm() {
         description,
         symbol,
         direction,
-        entryPrice: entryPrice ? parseFloat(entryPrice) : undefined,
-        targetPrice: targetPrice ? parseFloat(targetPrice) : undefined,
+        entryPrice: undefined,
+        targetPrice: targetPriceAmount,
         tradeImage: imageUrl,
         orderId: undefined, // No longer using orderId
         expiresAt: endTime,
@@ -233,9 +238,8 @@ export default function PredictionForm() {
       setTitle("");
       setDescription("");
       setSymbol("");
-      setEntryPrice("");
       setTargetPrice("");
-      setInitialLiquidity("");
+      setInitialLiquidity(0);
       setFile(null);
       setPreview(null);
       setDeadline("");
@@ -295,17 +299,24 @@ export default function PredictionForm() {
           <label className="text-sm text-foreground/80" htmlFor="symbol">
             Trading Pair *
           </label>
-          <input
+          <select
             id="symbol"
             className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="BTC/USD"
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
             required
             disabled={isLoading}
-          />
+          >
+            <option value="">Select a trading pair</option>
+            <option value="1INCHUSD">1INCH/USD</option>
+            <option value="AAVEUSD">AAVE/USD</option>
+            <option value="BITCOINUSD">BITCOIN/USD</option>
+            <option value="BTCUSD">BTC/USD</option>
+            <option value="BNBUSD">BNB/USD</option>
+            <option value="ETHUSD">ETH/USD</option>
+          </select>
           <div className="text-xs text-foreground/60">
-            Supported: BTC/USD, ETH/USD, BNB/USD, etc.
+            Choose from supported trading pairs
           </div>
         </div>
 
@@ -342,37 +353,23 @@ export default function PredictionForm() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-sm text-foreground/80" htmlFor="entryPrice">
-            Entry Price
-          </label>
-          <input
-            id="entryPrice"
-            type="number"
-            step="0.00000001"
-            className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="68500"
-            value={entryPrice}
-            onChange={(e) => setEntryPrice(e.target.value)}
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm text-foreground/80" htmlFor="targetPrice">
-            Target Price
-          </label>
-          <input
-            id="targetPrice"
-            type="number"
-            step="0.00000001"
-            className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="75000"
-            value={targetPrice}
-            onChange={(e) => setTargetPrice(e.target.value)}
-            disabled={isLoading}
-          />
+      <div className="space-y-1">
+        <label className="text-sm text-foreground/80" htmlFor="targetPrice">
+          Target Price *
+        </label>
+        <input
+          id="targetPrice"
+          type="number"
+          step="0.00000001"
+          className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+          placeholder="75000"
+          value={targetPrice}
+          onChange={(e) => setTargetPrice(e.target.value)}
+          required
+          disabled={isLoading}
+        />
+        <div className="text-xs text-foreground/60">
+          The price target for your prediction
         </div>
       </div>
 
@@ -389,7 +386,7 @@ export default function PredictionForm() {
             className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="100.00"
             value={initialLiquidity}
-            onChange={(e) => setInitialLiquidity(e.target.value)}
+            onChange={(e) => setInitialLiquidity(parseFloat(e.target.value))}
             required
             disabled={isLoading}
           />
