@@ -56,12 +56,29 @@ export default function PredictionForm() {
 
   const isDateDisabled = (date: Date) => {
     const now = new Date();
-    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-    return date < oneHourFromNow;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const selectedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    // Disable dates before today
+    return selectedDate < today;
   };
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
+    
+    // If today is selected, set default time to 1 hour from now
+    const today = new Date();
+    const isToday = date.getDate() === today.getDate() && 
+      date.getMonth() === today.getMonth() && 
+      date.getFullYear() === today.getFullYear();
+    
+    if (isToday) {
+      const oneHourFromNow = new Date(today.getTime() + 60 * 60 * 1000);
+      setSelectedTime({
+        hours: oneHourFromNow.getHours(),
+        minutes: oneHourFromNow.getMinutes()
+      });
+    }
   };
 
   const handleTimeChange = (type: 'hours' | 'minutes', value: number) => {
@@ -558,6 +575,9 @@ export default function PredictionForm() {
             <div className="p-4">
               {/* Calendar */}
               <div className="mb-6">
+                <div className="text-xs text-foreground/60 mb-2 text-center">
+                  Select a date 
+                </div>
                 <div className="flex items-center justify-between mb-4">
                   <button
                     onClick={() => navigateMonth('prev')}
@@ -597,6 +617,12 @@ export default function PredictionForm() {
                       selectedDate.getMonth() === currentMonth.getMonth() &&
                       selectedDate.getFullYear() === currentMonth.getFullYear();
                     
+                    // Check if this is today
+                    const today = new Date();
+                    const isToday = date.getDate() === today.getDate() && 
+                      date.getMonth() === today.getMonth() && 
+                      date.getFullYear() === today.getFullYear();
+                    
                     return (
                       <button
                         key={day}
@@ -604,9 +630,12 @@ export default function PredictionForm() {
                         disabled={isDisabled}
                         className={`h-8 text-sm rounded hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                           isSelected ? 'bg-primary text-primary-foreground' : ''
-                        }`}
+                        } ${isToday && !isSelected ? 'ring-2 ring-primary/50 bg-primary/10' : ''}`}
                       >
                         {day}
+                        {isToday && !isSelected && (
+                          <span className="text-xs text-primary font-medium">•</span>
+                        )}
                       </button>
                     );
                   })}
