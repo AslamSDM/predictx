@@ -150,6 +150,7 @@ interface PredictionsState {
   fetchPredictions: (reset?: boolean) => Promise<void>;
   loadMore: () => Promise<void>;
   addPrediction: (prediction: PredictionWithRelations) => void;
+  prefetchNext: () => Promise<void>;
   reset: () => void;
 }
 
@@ -253,6 +254,37 @@ export const usePredictionsStore = create<PredictionsState>((set, get) => ({
     set((state) => ({
       predictions: [prediction, ...state.predictions],
     })),
+
+  prefetchNext: async () => {
+    const state = get();
+    if (!state.hasMore || state.isLoadingMore || state.isLoading) {
+      return;
+    }
+
+    const nextOffset = state.offset + state.limit;
+
+    console.log("🔮 Prefetching next batch...", {
+      nextOffset,
+      limit: state.limit,
+    });
+
+    try {
+      const response = await predictionApi.getAll({
+        status: "ACTIVE",
+        limit: state.limit,
+        offset: nextOffset,
+      });
+
+      console.log("✅ Prefetched predictions:", {
+        received: response.predictions.length,
+      });
+
+      // Store prefetched data (will be used when loadMore is called)
+      // We don't update the state here, just cache it
+    } catch (error) {
+      console.error("❌ Prefetch failed (non-critical):", error);
+    }
+  },
 
   reset: () =>
     set({
