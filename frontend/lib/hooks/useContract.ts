@@ -147,7 +147,6 @@ export function useContract() {
         account: wallet.address as `0x${string}`,
       });
       console.log("Approve transaction hash:", approveHash);
-      await publicClient.waitForTransactionReceipt({ hash: approveHash });
     }
     console.log("📋 Parameters received:", {
       pairName: params.pairName,
@@ -206,9 +205,12 @@ export function useContract() {
         args: [
           params.pairName,
           directionEnum,
-           params.targetPrice,
+          {
+            base: params.targetPrice,
+            expo: -8
+          },
           params.endTime,
-          "",
+          "qwertyuiop", 
           params.initialLiquidity
         ],
         account: wallet.address as `0x${string}`,
@@ -217,9 +219,19 @@ export function useContract() {
 
       // Wait for transaction confirmation
       const predictionReceipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log("Prediction receipt:", predictionReceipt);
 
       // Method 1: Extract from contractAddress (for direct deployments)
-      let PredictionContractAddress = predictionReceipt.contractAddress;
+      let PredictionContractAddress = predictionReceipt.logs[0].address;
+
+      //Approve PyUsd to prediction contract
+      const approvePyUsdHash = await walletClient.writeContract({
+        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [PredictionContractAddress as `0x${string}`, approveAmount],
+        account: wallet.address as `0x${string}`,
+      });
 
       if (!PredictionContractAddress) {
         throw new Error("Failed to get prediction contract address from transaction receipt");
@@ -236,7 +248,8 @@ export function useContract() {
         account: wallet.address as `0x${string}`,
       });
       const yesTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: yesTokenHash });
-      const yesTokenAddress = yesTokenReceipt.contractAddress;
+      console.log("Yes token receipt:", yesTokenReceipt);
+      const yesTokenAddress = yesTokenReceipt.logs[0].address;
       
       if (!yesTokenAddress) {
         throw new Error("Failed to get yes token contract address from transaction receipt");
@@ -252,7 +265,8 @@ export function useContract() {
         account: wallet.address as `0x${string}`,
       });
       const noTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: noTokenHash });
-      const noTokenAddress = noTokenReceipt.contractAddress;
+      console.log("No token receipt:", noTokenReceipt);
+      const noTokenAddress = noTokenReceipt.logs[0].address;
       
       if (!noTokenAddress) {
         throw new Error("Failed to get no token contract address from transaction receipt");

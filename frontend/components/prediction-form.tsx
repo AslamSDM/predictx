@@ -138,10 +138,6 @@ export default function PredictionForm() {
     const now = new Date();
     const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
 
-    if (selectedTime <= oneHourFromNow) {
-      setError("Expiration time must be at least 1 hour from now");
-      return;
-    }
 
     // Validate target price
     const targetPriceAmount = parseFloat(targetPrice);
@@ -198,6 +194,15 @@ export default function PredictionForm() {
 
       // TODO: This is a hook for blockchain integration
       // Uncomment when you have deployed contracts
+      console.log("Initial liquidity:", initialLiquidity);
+      console.log("Target price:", targetPriceAmount);
+      console.log("End time:", endTime);
+      console.log("Metadata URI:", JSON.stringify({ title, description, imageUrl }));
+      console.log("Initial liquidity:", initialLiquidity);
+      console.log("Target price:", targetPriceAmount);
+      console.log("End time:", endTime);
+      console.log("Metadata URI:", JSON.stringify({ title, description, imageUrl }));
+      console.log("Initial liquidity:", initialLiquidity);
       const contractAddresses = await createPrediction({
         pairName,
         direction,

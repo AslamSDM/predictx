@@ -41,7 +41,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
          HIGHPRICE_RESOLVED,
          LOWPRICE_RESOLVED, 
          PRICE_UPDATED
-          }
+    }
 
 
     uint256 private constant PRECISION = 1e6;
