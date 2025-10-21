@@ -38,7 +38,7 @@ export default function BetModal({
 
   // Helper to convert Decimal or number to number
   const toNumber = (value: number | { toNumber: () => number }) => {
-    return typeof value === "number" ? value : value.toNumber();
+    return typeof value === "number" ? value : Number(value);
   };
 
   // Calculate potential winnings (simplified)
