@@ -10,6 +10,7 @@ import {
   Check,
   TrendingUp,
   DollarSign,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -17,7 +18,7 @@ import Image from "next/image";
 
 export default function UserProfileDropdown() {
   const { authenticated, logout } = useAuth();
-  const { user } = useUserStore();
+  const { user, isLoading } = useUserStore();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -51,7 +52,21 @@ export default function UserProfileDropdown() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!authenticated || !user) return null;
+  if (!authenticated) return null;
+
+  // Show loading state while user is being fetched
+  if (isLoading || !user) {
+    return (
+      <div className="flex items-center gap-2 px-2 py-2 rounded-full">
+        <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary animate-pulse">
+          <Loader2 className="w-5 h-5 text-primary animate-spin" />
+        </div>
+        <span className="hidden md:block text-sm font-medium text-muted-foreground">
+          Loading...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="relative" ref={dropdownRef}>

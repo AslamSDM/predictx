@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get("walletAddress");
+    const includeRelations = searchParams.get("include") === "true";
 
     if (!walletAddress) {
       return NextResponse.json(
@@ -52,19 +53,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fast lookup without relations by default
     const user = await prisma.user.findUnique({
       where: { walletAddress },
-      include: {
+      include: includeRelations ? {
         predictions: {
+          take: 10, // Limit to recent 10
           orderBy: { createdAt: "desc" },
         },
         bets: {
+          take: 10, // Limit to recent 10
           include: {
             prediction: true,
           },
           orderBy: { placedAt: "desc" },
         },
-      },
+      } : undefined,
     });
 
     if (!user) {

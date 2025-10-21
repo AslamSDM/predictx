@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { predictionApi, userApi, betApi } from "@/lib/api";
 
-// Random Username Generator
+// Deterministic Username Generator based on wallet address
 const adjectives = [
   "Swift",
   "Brave",
@@ -61,15 +61,27 @@ const nouns = [
   "Sage",
 ];
 
-function generateRandomUsername(): string {
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  const number = Math.floor(Math.random() * 999);
+// Simple hash function for consistent randomness
+function simpleHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
+
+function generateDeterministicUsername(seed: string): string {
+  const hash = simpleHash(seed);
+  const adjective = adjectives[hash % adjectives.length];
+  const noun = nouns[(hash >> 8) % nouns.length];
+  const number = (hash >> 16) % 999;
   return `${adjective}${noun}${number}`;
 }
 
-// Random Avatar Generator using DiceBear API
-function generateRandomAvatar(): string {
+// Deterministic Avatar Generator using wallet address as seed
+function generateDeterministicAvatar(seed: string): string {
   const styles = [
     "avataaars",
     "bottts",
@@ -78,8 +90,9 @@ function generateRandomAvatar(): string {
     "fun-emoji",
     "thumbs",
   ];
-  const style = styles[Math.floor(Math.random() * styles.length)];
-  const seed = Math.random().toString(36).substring(7);
+  const hash = simpleHash(seed);
+  const style = styles[hash % styles.length];
+  // Use wallet address as seed for consistent avatar
   return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
 }
 
@@ -103,25 +116,36 @@ export const useUserStore = create<UserState>((set, get) => ({
   fetchOrCreateUser: async (walletAddress: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Try to get existing user
+      // Try to get existing user from cache first
+      const cachedUser = get().user;
+      if (cachedUser && cachedUser.walletAddress === walletAddress) {
+        console.log("✅ Using cached user:", cachedUser.username);
+        set({ isLoading: false });
+        return cachedUser;
+      }
+
+      // Try to get existing user from API
       let user: User;
       try {
         user = await userApi.getByWallet(walletAddress);
+        console.log("✅ Found existing user:", user.username);
       } catch (error: any) {
-        // If user doesn't exist (404), create new user with random username and avatar
+        // If user doesn't exist (404), create new user with deterministic username and avatar
         if (error.status === 404) {
-          const randomUsername = generateRandomUsername();
-          const randomAvatar = generateRandomAvatar();
+          // Generate deterministic username and avatar based on wallet address
+          const deterministicUsername = generateDeterministicUsername(walletAddress);
+          const deterministicAvatar = generateDeterministicAvatar(walletAddress);
 
           user = await userApi.create({
             walletAddress,
-            username: randomUsername,
-            avatar: randomAvatar,
+            username: deterministicUsername,
+            avatar: deterministicAvatar,
           });
 
           console.log("✨ Created new user:", {
-            username: randomUsername,
-            avatar: randomAvatar,
+            username: deterministicUsername,
+            avatar: deterministicAvatar,
+            wallet: walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4),
           });
         } else {
           throw error;

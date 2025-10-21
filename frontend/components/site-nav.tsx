@@ -43,11 +43,12 @@ export default function SiteNav() {
           {link("/resolve", "Resolve")}
         </div>
         <div className="flex items-center gap-2">
-          {/* Show wallet connect only when not authenticated */}
-          {!authenticated && <WalletConnect />}
-
-          {/* Show user profile dropdown when authenticated */}
-          <UserProfileDropdown />
+          {/* Show user profile dropdown (handles loading state internally) or wallet connect */}
+          {authenticated ? (
+            <UserProfileDropdown />
+          ) : (
+            <WalletConnect />
+          )}
         </div>
       </nav>
     </header>

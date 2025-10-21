@@ -39,19 +39,59 @@ async function apiRequest<T>(
   return response.json();
 }
 
-// User API functions
+// User API functions with caching
 export const userApi = {
   async create(userData: CreateUserData): Promise<UserWithRelations> {
-    return apiRequest("/users", {
+    const user = await apiRequest<UserWithRelations>("/users", {
       method: "POST",
       body: JSON.stringify(userData),
     });
+    
+    // Cache the user in localStorage
+    try {
+      localStorage.setItem(`user_${userData.walletAddress}`, JSON.stringify({
+        user,
+        timestamp: Date.now(),
+      }));
+    } catch (e) {
+      console.warn("Failed to cache user:", e);
+    }
+    
+    return user;
   },
 
   async getByWallet(walletAddress: string): Promise<UserWithRelations> {
-    return apiRequest(
+    // Check cache first (5 minute TTL)
+    try {
+      const cached = localStorage.getItem(`user_${walletAddress}`);
+      if (cached) {
+        const { user, timestamp } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+        if (age < 5 * 60 * 1000) { // 5 minutes
+          console.log("✅ Using cached user (age: " + Math.round(age / 1000) + "s)");
+          return user;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to read cache:", e);
+    }
+
+    // Fetch from API (without relations for speed)
+    const user = await apiRequest<UserWithRelations>(
       `/users?walletAddress=${encodeURIComponent(walletAddress)}`
     );
+    
+    // Cache the result
+    try {
+      localStorage.setItem(`user_${walletAddress}`, JSON.stringify({
+        user,
+        timestamp: Date.now(),
+      }));
+    } catch (e) {
+      console.warn("Failed to cache user:", e);
+    }
+    
+    return user;
   },
 };
 

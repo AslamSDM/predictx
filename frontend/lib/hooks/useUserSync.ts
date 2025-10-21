@@ -37,15 +37,15 @@ export function useUserSync() {
       identifier,
     });
 
-    // Sync with database
+    // Sync with database (uses cache if available)
     fetchOrCreateUser(identifier)
       .then((user) => {
-        console.log("✅ User synced successfully:", user);
+        console.log("✅ User synced successfully:", user.username);
       })
       .catch((error) => {
         console.error("❌ Failed to sync user:", error);
       });
-  }, [authenticated, address, privyUser?.id, ready]);
+  }, [authenticated, address, privyUser?.id, ready, fetchOrCreateUser, clearUser]);
 
   return {
     user,
