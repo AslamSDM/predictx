@@ -35,13 +35,9 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     enum Direction { Up, Down }
     enum Status {
         NOT_INITIALIZED,
-        ONE_TOKEN_MINTED,
-        TWO_TOKEN_MINTED,
         MARKET_INITIALIZED,
-         HIGHPRICE_RESOLVED,
-         LOWPRICE_RESOLVED, 
          PRICE_UPDATED
-    }
+          }
 
 
     uint256 private constant PRECISION = 1e6;
@@ -143,6 +139,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         uint256 _initialLiquidity
     ) Ownable(_creator) {
 
+       
         pythPriceFeedId = _pythPriceFeedId;
         targetPrice = _targetPrice;
         endTime = _endTime;
@@ -150,18 +147,11 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         startTime = block.timestamp;
         direction = _direction; //Up or Down
         pairName = _pairName;
-        status = Status.NOT_INITIALIZED;
         outcome = Outcome.Undetermined;
         creator = _creator;
         factory = _factory;
 
         pyUSD = _initialLiquidity;
-       
-    }
-    function initializeNoToken() external onlyOwner {
-if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
-    revert PredictionMarket__MarketAlreadyInitialized();
-}
         uint256 initialTokenAmount = (pyUSD/initialTokenValue)*PRECISION;
         noToken = new PredictionMarketToken(
             "NO", 
@@ -169,39 +159,32 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
             creator,
             (initialTokenAmount)
         );
-        status = status == Status.NOT_INITIALIZED ? Status.ONE_TOKEN_MINTED : Status.TWO_TOKEN_MINTED;
-        }
-
-    function initializeYesToken() external onlyOwner {
-if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
-    revert PredictionMarket__MarketAlreadyInitialized();
-}
-        uint256 initialTokenAmount = (pyUSD/initialTokenValue)*PRECISION;
         yesToken = new PredictionMarketToken(
             "YES",
             "YES",
            creator,
             (initialTokenAmount)
         );
-        status = status == Status.NOT_INITIALIZED ? Status.ONE_TOKEN_MINTED : Status.TWO_TOKEN_MINTED;
+        status = Status.NOT_INITIALIZED;
+        isReported = false;
+
     }
-    
+
     function initializeMarket() external onlyOwner {
-        if (status != Status.TWO_TOKEN_MINTED) {
+        if (status != Status.NOT_INITIALIZED) {
             revert PredictionMarket__MarketNotInitialized();
         }
+        uint256 initialTokenAmount = (pyUSD/initialTokenValue)*PRECISION;
+
+        require(IERC20(stakeToken).balanceOf(creator) >= pyUSD, "Insufficient balance");
         require(IERC20(stakeToken).allowance(creator, address(this)) >= pyUSD, "Insufficient allowance");
         require(IERC20(stakeToken).transferFrom(creator, address(this), pyUSD), "Transfer failed");
-        uint256 initialTokenAmount = (pyUSD/initialTokenValue)*PRECISION;
         uint256 initialYesAmountLocked = (initialTokenAmount * initialYesProbability * percentageToLock * 2) / 10000;
         uint256 initialNoAmountLocked = (initialTokenAmount * (100 - initialYesProbability) * percentageToLock * 2) / 10000;
         yesToken.transfer(creator, initialYesAmountLocked);
         noToken.transfer(creator, initialNoAmountLocked);
         status = Status.MARKET_INITIALIZED;
-        isReported = false;
     }
-
-
 
     function addLiquidity(uint256 _PYUSDAmount) external onlyOwner  {
 
@@ -253,31 +236,39 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
 
 
     function _update_and_validate (
-            bytes[] calldata _priceUpdateData
-    ) public payable returns (PythStructs.PriceFeed memory ) {
+            bytes[] calldata _priceUpdateDataHigh,
+            bytes[] calldata _priceUpdateDataLow
+    ) public payable returns (PythStructs.PriceFeed[] memory ) {
         IPyth pyth = IPyth(pythContractAddress);
-        uint256 fees = pyth.getUpdateFee(_priceUpdateData);
-        require(msg.value >= fees, "Insufficient funds"); //*2 just to incorporate updation fee also
+        uint256 highFees = pyth.getUpdateFee(_priceUpdateDataHigh);
+        uint256 lowFees = pyth.getUpdateFee(_priceUpdateDataLow);
+        require(msg.value >= (highFees + lowFees), "Insufficient funds"); 
         bytes32[] memory priceIds = new bytes32[](1);
         priceIds[0] = pythPriceFeedId;
         uint64 minPublishTime = uint64(startTime);
         uint64 maxPublishTime = uint64(endTime);
-        PythStructs.PriceFeed memory priceFeed;
+        PythStructs.PriceFeed[] memory priceFeeds = new PythStructs.PriceFeed[](2);
 
-        priceFeed = pyth.parsePriceFeedUpdates{value: fees}(
-            _priceUpdateData,
+        priceFeeds[0] = pyth.parsePriceFeedUpdates{value: highFees}(
+            _priceUpdateDataHigh,
             priceIds,
             minPublishTime,
             maxPublishTime
         )[0];
-        return priceFeed;
 
+        priceFeeds[1] = pyth.parsePriceFeedUpdates{value: lowFees}(
+            _priceUpdateDataLow,
+            priceIds,
+            minPublishTime,
+            maxPublishTime
+        )[0];
+        return priceFeeds;
     }
 
     //first send high price update data
     //then send low price update data
     //then send update price data
-    function report(bytes[] calldata _priceUpdateData) external payable   {
+    function report(bytes[] calldata _priceUpdateDataHigh, bytes[] calldata _priceUpdateDataLow, bytes[] calldata _priceUpdateData) external payable   {
 
         if (isReported) {
             revert PredictionMarket__PredictionAlreadyReported();
@@ -285,22 +276,11 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
         if(block.timestamp  < endTime){
             revert PredictionMarket__MarketNotEnded();
         }
-        if(status == Status.MARKET_INITIALIZED){
-            //resolve high price feed and update status to HIGHPRICE_RESOLVED
-            highPriceFeed = _update_and_validate(_priceUpdateData);
-            status = Status.HIGHPRICE_RESOLVED;
-            return;
-        }
-        if(status == Status.HIGHPRICE_RESOLVED){
-            //resolve low price feed and update status to LOWPRICE_RESOLVED
-            lowPriceFeed = _update_and_validate(_priceUpdateData);
-            status = Status.LOWPRICE_RESOLVED;
-            return;
-        }
-        if(status == Status.LOWPRICE_RESOLVED){
-            //update price feed and update status to PRICE_UPDATED
+      
             isReported = true;
-
+            PythStructs.PriceFeed[] memory priceFeeds = _update_and_validate(_priceUpdateDataHigh, _priceUpdateDataLow);
+            highPriceFeed = priceFeeds[0];
+            lowPriceFeed = priceFeeds[1];
             if(direction == Direction.Up){
             if(_normalizeTo8(uint256(int256(highPriceFeed.price.price)), highPriceFeed.price.expo) >= _normalizeTo8(targetPrice.base,targetPrice.expo)){
                 outcome = Outcome.YES;
@@ -327,7 +307,7 @@ if (status != Status.NOT_INITIALIZED && status != Status.ONE_TOKEN_MINTED) {
         emit CurrentPairTokenPrice(_normalizeTo8(uint256(int256(updatePriceFeed.price)), updatePriceFeed.expo));
         status = Status.PRICE_UPDATED;
         return;
-        }
+        
     }
    
 
