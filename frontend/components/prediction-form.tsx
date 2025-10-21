@@ -316,7 +316,6 @@ export default function PredictionForm() {
             <option value="1INCHUSD">1INCH/USD</option>
             <option value="AAVEUSD">AAVE/USD</option>
             <option value="BITCOINUSD">BITCOIN/USD</option>
-            <option value="BTCUSD">BTC/USD</option>
             <option value="BNBUSD">BNB/USD</option>
             <option value="ETHUSD">ETH/USD</option>
           </select>

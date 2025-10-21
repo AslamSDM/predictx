@@ -1,6 +1,6 @@
 "use client";
 
-import { usePrivy, useWallets, useCreateWallet } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useEffect, useState } from "react";
 import { parseEther } from "viem";
 import type { TradeDirection } from "@/lib/types";
@@ -16,25 +16,19 @@ export function useContract() {
 
   const { wallets, ready: readyWallets } = useWallets();
   const { ready: readyAuth, authenticated, user } = usePrivy();
-  const { createWallet } = useCreateWallet();
   const primaryWallet = wallets[0];
 
-  // Function to ensure wallet is created
+  // Function to ensure wallet is created (removed manual creation to prevent multiple wallets)
   const ensureWallet = async () => {
     if (!readyAuth || !authenticated || !readyWallets) {
       return false;
     }
 
+    // Let Privy handle wallet creation automatically
+    // Don't manually create wallets to prevent multiple wallet creation
     if (wallets.length === 0) {
-      console.log("🔄 No wallets found, creating embedded wallet...");
-      try {
-        await createWallet();
-        console.log("✅ Embedded wallet created successfully");
-        return true;
-      } catch (error) {
-        console.error("❌ Failed to create wallet:", error);
-        return false;
-      }
+      console.log("⏳ Waiting for Privy to create embedded wallet...");
+      return false; // Wait for Privy's automatic wallet creation
     }
     return true;
   };
@@ -45,10 +39,8 @@ export function useContract() {
       console.log("✅ User info:", user);
       console.log("✅ Primary wallet:", primaryWallet);
       
-      // Ensure wallet exists if user is authenticated but no wallets
-      if (wallets.length === 0) {
-        ensureWallet();
-      }
+      // Let Privy handle wallet creation automatically
+      // Don't manually trigger wallet creation to prevent multiple wallets
 
       // Log wallet address if available
       if (primaryWallet?.address) {
