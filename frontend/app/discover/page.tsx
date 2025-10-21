@@ -7,7 +7,11 @@ import BetModal from "@/components/bet-modal";
 import LoginModal from "@/components/login-modal";
 import ChatModal from "@/components/chat-modal";
 import { usePredictionsStore, useUserStore } from "@/lib/store";
-import { type PredictionWithRelations, type BetPosition, TradeDirection } from "@/lib/types";
+import {
+  type PredictionWithRelations,
+  type BetPosition,
+  TradeDirection,
+} from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useContract } from "@/lib/hooks/useContract";
@@ -101,7 +105,7 @@ export default function DiscoverPage() {
       await placeBet({
         predictionAddress: selectedPrediction.address,
         amount: amount,
-        position: betPosition // Using the betPosition state that was set in handleSwipeLeft/Right
+        position: betPosition, // Using the betPosition state that was set in handleSwipeLeft/Right
       });
       setShowModal(false);
     } catch (error) {
@@ -286,57 +290,6 @@ export default function DiscoverPage() {
         </div>
 
         {/* Action Buttons (desktop only - alternative to swipe) */}
-        <div className="hidden lg:!flex lg:flex-col space-y-4 mt-6 flex-shrink-0">
-          {/* Up/Down Navigation */}
-          <div className="flex justify-center">
-            <button
-              onClick={() =>
-                currentPrediction && handleSwipeUp(currentPrediction)
-              }
-              disabled={currentIndex >= predictions.length - 1 && !hasMore}
-              className="w-12 h-12 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center hover:bg-blue-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Skip"
-            >
-              <span className="text-xl">↑</span>
-            </button>
-          </div>
-
-          {/* Left/Right Betting */}
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={() =>
-                currentPrediction && handleSwipeLeft(currentPrediction)
-              }
-              className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center hover:bg-red-500/30 transition-colors"
-              aria-label="Bet NO"
-            >
-              <span className="text-2xl">✕</span>
-            </button>
-            <button
-              onClick={() =>
-                currentPrediction && handleSwipeRight(currentPrediction)
-              }
-              className="w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center hover:bg-green-500/30 transition-colors"
-              aria-label="Bet YES"
-            >
-              <span className="text-2xl">✓</span>
-            </button>
-          </div>
-
-          {/* Down Navigation */}
-          <div className="flex justify-center">
-            <button
-              onClick={() =>
-                currentPrediction && handleSwipeDown(currentPrediction)
-              }
-              disabled={currentIndex === 0}
-              className="w-12 h-12 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center hover:bg-blue-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Go Back"
-            >
-              <span className="text-xl">↓</span>
-            </button>
-          </div>
-        </div>
       </section>
 
       {/* Bet Modal */}

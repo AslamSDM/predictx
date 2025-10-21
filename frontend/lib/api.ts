@@ -46,17 +46,20 @@ export const userApi = {
       method: "POST",
       body: JSON.stringify(userData),
     });
-    
+
     // Cache the user in localStorage
     try {
-      localStorage.setItem(`user_${userData.walletAddress}`, JSON.stringify({
-        user,
-        timestamp: Date.now(),
-      }));
+      localStorage.setItem(
+        `user_${userData.walletAddress}`,
+        JSON.stringify({
+          user,
+          timestamp: Date.now(),
+        })
+      );
     } catch (e) {
       console.warn("Failed to cache user:", e);
     }
-    
+
     return user;
   },
 
@@ -67,8 +70,11 @@ export const userApi = {
       if (cached) {
         const { user, timestamp } = JSON.parse(cached);
         const age = Date.now() - timestamp;
-        if (age < 5 * 60 * 1000) { // 5 minutes
-          console.log("✅ Using cached user (age: " + Math.round(age / 1000) + "s)");
+        if (age < 5 * 60 * 1000) {
+          // 5 minutes
+          console.log(
+            "✅ Using cached user (age: " + Math.round(age / 1000) + "s)"
+          );
           return user;
         }
       }
@@ -80,17 +86,20 @@ export const userApi = {
     const user = await apiRequest<UserWithRelations>(
       `/users?walletAddress=${encodeURIComponent(walletAddress)}`
     );
-    
+
     // Cache the result
     try {
-      localStorage.setItem(`user_${walletAddress}`, JSON.stringify({
-        user,
-        timestamp: Date.now(),
-      }));
+      localStorage.setItem(
+        `user_${walletAddress}`,
+        JSON.stringify({
+          user,
+          timestamp: Date.now(),
+        })
+      );
     } catch (e) {
       console.warn("Failed to cache user:", e);
     }
-    
+
     return user;
   },
 };
@@ -242,6 +251,79 @@ export const uploadApi = {
 export const statsApi = {
   async getPlatformStats(): Promise<PlatformStats> {
     return apiRequest("/stats");
+  },
+};
+
+// Follow API functions
+export const followApi = {
+  async follow(followerId: string, followingId: string): Promise<{ success: boolean }> {
+    return apiRequest("/follow", {
+      method: "POST",
+      body: JSON.stringify({ followerId, followingId }),
+    });
+  },
+
+  async unfollow(followerId: string, followingId: string): Promise<{ success: boolean }> {
+    return apiRequest(`/follow?followerId=${followerId}&followingId=${followingId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async getFollowData(
+    userId: string,
+    checkFollowerId?: string
+  ): Promise<{
+    followersCount: number;
+    followingCount: number;
+    isFollowing: boolean;
+  }> {
+    const params = new URLSearchParams({ userId });
+    if (checkFollowerId) {
+      params.set("checkFollowerId", checkFollowerId);
+    }
+    return apiRequest(`/follow?${params.toString()}`);
+  },
+
+  async getFollowers(userId: string): Promise<{
+    followersCount: number;
+    followingCount: number;
+    list: Array<{
+      id: string;
+      createdAt: string;
+      follower: {
+        id: string;
+        username: string | null;
+        avatar: string | null;
+        walletAddress: string;
+        _count: {
+          predictions: number;
+          bets: number;
+        };
+      };
+    }>;
+  }> {
+    return apiRequest(`/follow?userId=${userId}&type=followers`);
+  },
+
+  async getFollowing(userId: string): Promise<{
+    followersCount: number;
+    followingCount: number;
+    list: Array<{
+      id: string;
+      createdAt: string;
+      following: {
+        id: string;
+        username: string | null;
+        avatar: string | null;
+        walletAddress: string;
+        _count: {
+          predictions: number;
+          bets: number;
+        };
+      };
+    }>;
+  }> {
+    return apiRequest(`/follow?userId=${userId}&type=following`);
   },
 };
 

@@ -44,11 +44,7 @@ export default function SiteNav() {
         </div>
         <div className="flex items-center gap-2">
           {/* Show user profile dropdown (handles loading state internally) or wallet connect */}
-          {authenticated ? (
-            <UserProfileDropdown />
-          ) : (
-            <WalletConnect />
-          )}
+          {authenticated ? <UserProfileDropdown /> : <WalletConnect />}
         </div>
       </nav>
     </header>

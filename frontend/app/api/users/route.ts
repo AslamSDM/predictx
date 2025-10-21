@@ -56,19 +56,21 @@ export async function GET(request: NextRequest) {
     // Fast lookup without relations by default
     const user = await prisma.user.findUnique({
       where: { walletAddress },
-      include: includeRelations ? {
-        predictions: {
-          take: 10, // Limit to recent 10
-          orderBy: { createdAt: "desc" },
-        },
-        bets: {
-          take: 10, // Limit to recent 10
-          include: {
-            prediction: true,
-          },
-          orderBy: { placedAt: "desc" },
-        },
-      } : undefined,
+      include: includeRelations
+        ? {
+            predictions: {
+              take: 10, // Limit to recent 10
+              orderBy: { createdAt: "desc" },
+            },
+            bets: {
+              take: 10, // Limit to recent 10
+              include: {
+                prediction: true,
+              },
+              orderBy: { placedAt: "desc" },
+            },
+          }
+        : undefined,
     });
 
     if (!user) {

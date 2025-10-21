@@ -327,8 +327,15 @@ export default function SwipeCard({
             </div>
 
             {/* Creator */}
-            <div className="text-xs text-muted-foreground text-center mb-2">
-              Created by @{prediction.creator.username || "Anonymous"}
+            <div className="text-xs text-center mb-2">
+              <span className="text-muted-foreground">Created by </span>
+              <a
+                href={`/profile/${prediction.creator.walletAddress}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-primary hover:underline font-medium cursor-pointer"
+              >
+                @{prediction.creator.username || "Anonymous"}
+              </a>
             </div>
           </div>
 

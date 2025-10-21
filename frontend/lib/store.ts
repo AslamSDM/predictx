@@ -133,8 +133,10 @@ export const useUserStore = create<UserState>((set, get) => ({
         // If user doesn't exist (404), create new user with deterministic username and avatar
         if (error.status === 404) {
           // Generate deterministic username and avatar based on wallet address
-          const deterministicUsername = generateDeterministicUsername(walletAddress);
-          const deterministicAvatar = generateDeterministicAvatar(walletAddress);
+          const deterministicUsername =
+            generateDeterministicUsername(walletAddress);
+          const deterministicAvatar =
+            generateDeterministicAvatar(walletAddress);
 
           user = await userApi.create({
             walletAddress,

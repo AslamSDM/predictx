@@ -21,8 +21,28 @@ model User {
     // Relations
     predictions Prediction[]
     bets        Bet[]
+    
+    // Follow relations
+    following   Follow[] @relation("UserFollowing")
+    followers   Follow[] @relation("UserFollowers")
 
     @@map("users")
+}
+
+model Follow {
+    id          String   @id @default(cuid())
+    followerId  String   // User who is following
+    followingId String   // User being followed
+    createdAt   DateTime @default(now())
+
+    // Relations
+    follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+    following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+    @@unique([followerId, followingId])
+    @@index([followerId])
+    @@index([followingId])
+    @@map("follows")
 }
 
 model Prediction {

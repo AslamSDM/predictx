@@ -45,7 +45,14 @@ export function useUserSync() {
       .catch((error) => {
         console.error("❌ Failed to sync user:", error);
       });
-  }, [authenticated, address, privyUser?.id, ready, fetchOrCreateUser, clearUser]);
+  }, [
+    authenticated,
+    address,
+    privyUser?.id,
+    ready,
+    fetchOrCreateUser,
+    clearUser,
+  ]);
 
   return {
     user,

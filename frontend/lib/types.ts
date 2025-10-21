@@ -23,6 +23,24 @@ export type UserWithRelations = Prisma.UserGetPayload<{
   };
 }>;
 
+// Follow types
+export interface FollowData {
+  followersCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+}
+
+export interface FollowUser {
+  id: string;
+  username: string | null;
+  avatar: string | null;
+  walletAddress: string;
+  _count?: {
+    predictions: number;
+    bets: number;
+  };
+}
+
 // Prediction types - server-side only
 export type Prediction = Prisma.PredictionGetPayload<Record<string, never>>;
 type PredictionWithRelationsServer = Prisma.PredictionGetPayload<{
