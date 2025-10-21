@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import SiteNav from "@/components/site-nav";
-import Silk from "@/components/silk";
+import Silk from "@/components/Silk";
 export default function Page() {
   return (
     <main className="relative">

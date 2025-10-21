@@ -1,7 +1,7 @@
 "use client";
 
-import { useWallets } from "@privy-io/react-auth";
-import { useState } from "react";
+import { usePrivy, useWallets, useCreateWallet } from "@privy-io/react-auth";
+import { useEffect, useState } from "react";
 import { parseEther } from "viem";
 import type { TradeDirection } from "@/lib/types";
 
@@ -11,23 +11,85 @@ import { PREDICTION_FACTORY_ADDRESS, STAKE_TOKEN_ADDRESS } from "../web3/address
 import { decodeEventLog } from "viem";
 
 export function useContract() {
-  const { wallets } = useWallets();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { wallets, ready: readyWallets } = useWallets();
+  const { ready: readyAuth, authenticated, user } = usePrivy();
+  const { createWallet } = useCreateWallet();
   const primaryWallet = wallets[0];
 
-
-  const getblockNumber = async () => {
-
-    if (!primaryWallet) {
-      throw new Error("No wallet connected");
+  // Function to ensure wallet is created
+  const ensureWallet = async () => {
+    if (!readyAuth || !authenticated || !readyWallets) {
+      return false;
     }
 
+    if (wallets.length === 0) {
+      console.log("🔄 No wallets found, creating embedded wallet...");
+      try {
+        await createWallet();
+        console.log("✅ Embedded wallet created successfully");
+        return true;
+      } catch (error) {
+        console.error("❌ Failed to create wallet:", error);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    if (readyAuth && authenticated && readyWallets) {
+      console.log("✅ Wallets loaded:", wallets);
+      console.log("✅ User info:", user);
+      console.log("✅ Primary wallet:", primaryWallet);
+      
+      // Ensure wallet exists if user is authenticated but no wallets
+      if (wallets.length === 0) {
+        ensureWallet();
+      }
+
+      // Log wallet address if available
+      if (primaryWallet?.address) {
+        console.log("✅ Primary wallet address:", primaryWallet.address);
+      }
+    } else {
+      console.log("⏳ Waiting for wallet initialization...", { 
+        readyAuth, 
+        authenticated, 
+        readyWallets, 
+        walletsCount: wallets.length,
+        user: user?.id,
+        primaryWalletAddress: primaryWallet?.address
+      });
+    }
+  }, [readyAuth, authenticated, readyWallets, wallets, user, primaryWallet, ensureWallet]);
+
+  // Helper function to get wallet with proper error handling
+  const getWallet = () => {
+    if (!readyAuth || !authenticated) {
+      throw new Error("Please login first");
+    }
+    
+    if (!readyWallets) {
+      throw new Error("Wallets are still loading");
+    }
+    
+    if (wallets.length === 0) {
+      throw new Error("No wallet found. Please create a wallet first.");
+    }
+    
+    return primaryWallet;
+  };
+
+  const getblockNumber = async () => {
+    const wallet = getWallet();
+
     try {
-      const provider = await primaryWallet.getEthereumProvider();
-      const wallet = getPublicClient(provider);
-      const num = await wallet.getBlockNumber();
+      const provider = await wallet.getEthereumProvider();
+      const publicClient = getPublicClient(provider);
+      const num = await publicClient.getBlockNumber();
 
       console.log(num)
     } catch (err: any) {
@@ -48,44 +110,95 @@ export function useContract() {
   const createPrediction = async (params: {
     pairName: string;
     direction: TradeDirection;
-    targetPrice: number;
-    endTime: Date;
+    targetPrice: string;
+    endTime: string;
     metadataURI?: string;
-    initialLiquidity: number;
+    initialLiquidity: string;
   }): Promise<string[]> => {
-    if (!primaryWallet) {
-      throw new Error("No wallet connected");
-    }
+    const wallet = getWallet();
+
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const provider = await primaryWallet.getEthereumProvider();
+      const provider = await wallet.getEthereumProvider();
+      console.log("PROVIDER --------> ", provider)
 
       const walletClient = getWalletClient(provider);
       const publicClient = getPublicClient(provider);
       //Approve token for spending
       const approveAmount = parseEther("1000");
+
+      const allowance = await publicClient.readContract({
+        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [wallet.address as `0x${string}`, PREDICTION_FACTORY_ADDRESS as `0x${string}`],
+      });
+
+      console.log("Allowance:", allowance);
+      if (allowance < parseEther("0.01")) {
       const approveHash = await walletClient.writeContract({
         address: STAKE_TOKEN_ADDRESS as `0x${string}`,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [PREDICTION_FACTORY_ADDRESS as `0x${string}`, approveAmount],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       console.log("Approve transaction hash:", approveHash);
-
       await publicClient.waitForTransactionReceipt({ hash: approveHash });
+    }
+    console.log("📋 Parameters received:", {
+      pairName: params.pairName,
+      direction: params.direction,
+      targetPrice: params.targetPrice,
+      endTime: params.endTime,
+      metadataURI: params.metadataURI,
+      initialLiquidity: params.initialLiquidity
+    });
 
-
-      // Convert parameters
+    // Convert parameters
       const directionEnum = params.direction === "LONG" ? 0 : 1; // 0 = Up, 1 = Down
-      const targetPriceWei = BigInt(Math.floor(params.targetPrice * 100000000)); // Convert to 8 decimals
-      const endTimeUnix = BigInt(Math.floor(params.endTime.getTime() / 1000));
-      const initialLiquidityWei = BigInt(Math.floor(params.initialLiquidity * 1000000));
+      
+      // Add comprehensive validation before converting to BigInt
+      if (!params.pairName || typeof params.pairName !== 'string') {
+        throw new Error("pairName is required and must be a valid string");
+      }
+      
+      if (!params.direction || !['LONG', 'SHORT'].includes(params.direction)) {
+        throw new Error("direction is required and must be either 'LONG' or 'SHORT'");
+      }
+      
+      if (params.targetPrice === undefined || params.targetPrice === null) {
+        throw new Error("targetPrice is required and must be a valid number");
+      }
+      
+      if (!params.endTime) {
+        throw new Error("endTime is required");
+      }
+      
+      if (params.initialLiquidity === undefined || params.initialLiquidity === null ) {
+        throw new Error("initialLiquidity is required and must be a valid number");
+      }
+
+     
+
+      // Convert to BigInt with proper validation
+      // const targetPriceWei = BigInt(Math.floor(params.targetPrice * 100000000)); // Convert to 8 decimals
+      // console.log("Target price wei:", targetPriceWei);
+      
 
       // Call createPrediction on factory
+      console.log("🚀 Calling createPrediction with args:", {
+        pairName: params.pairName,
+        directionEnum,
+        targetPriceWei: params.targetPrice,
+        endTimeUnix: params.endTime,
+        metadataURI: "",
+        initialLiquidityWei: params.initialLiquidity
+      });
+      
       const hash = await walletClient.writeContract({
         address: PREDICTION_FACTORY_ADDRESS as `0x${string}`,
         abi: PREDICTION_FACTORY_ABI,
@@ -93,22 +206,25 @@ export function useContract() {
         args: [
           params.pairName,
           directionEnum,
-          targetPriceWei,
-          endTimeUnix,
-          params.metadataURI || "",
-          initialLiquidityWei
+           params.targetPrice,
+          params.endTime,
+          "",
+          params.initialLiquidity
         ],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       console.log("Create prediction transaction hash:", hash);
 
       // Wait for transaction confirmation
       const predictionReceipt = await publicClient.waitForTransactionReceipt({ hash });
-      
+
       // Method 1: Extract from contractAddress (for direct deployments)
-      let  PredictionContractAddress = predictionReceipt.contractAddress;
-      
-      
+      let PredictionContractAddress = predictionReceipt.contractAddress;
+
+      if (!PredictionContractAddress) {
+        throw new Error("Failed to get prediction contract address from transaction receipt");
+      }
+
       console.log("✅ Prediction contract deployed at:", PredictionContractAddress);
 
       //deploy Yes and No tokens
@@ -117,10 +233,15 @@ export function useContract() {
         abi: PREDICTION_ABI,
         functionName: "initializeYesToken",
         args: [],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       const yesTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: yesTokenHash });
       const yesTokenAddress = yesTokenReceipt.contractAddress;
+      
+      if (!yesTokenAddress) {
+        throw new Error("Failed to get yes token contract address from transaction receipt");
+      }
+      
       console.log("✅ Yes token deployed at:", yesTokenAddress);
 
       const noTokenHash = await walletClient.writeContract({
@@ -128,11 +249,15 @@ export function useContract() {
         abi: PREDICTION_ABI,
         functionName: "initializeNoToken",
         args: [],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
-      await publicClient.waitForTransactionReceipt({ hash: noTokenHash });
-      const noTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: yesTokenHash });
-      const noTokenAddress= noTokenReceipt.contractAddress;
+      const noTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: noTokenHash });
+      const noTokenAddress = noTokenReceipt.contractAddress;
+      
+      if (!noTokenAddress) {
+        throw new Error("Failed to get no token contract address from transaction receipt");
+      }
+      
       console.log("✅ No token deployed at:", noTokenAddress);
 
       //initialize market
@@ -141,7 +266,7 @@ export function useContract() {
         abi: PREDICTION_ABI,
         functionName: "initializeMarket",
         args: [],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       await publicClient.waitForTransactionReceipt({ hash: initializeMarketHash });
 
@@ -149,23 +274,35 @@ export function useContract() {
       console.log("No token transaction hash:", noTokenHash);
 
       //Approve yes token for spending into Prediction contract
+      console.log("🔐 Approving yes token:", {
+        yesTokenAddress,
+        predictionContractAddress: PredictionContractAddress,
+        approveAmount: approveAmount.toString()
+      });
+      
       const approveYesTokenHash = await walletClient.writeContract({
         address: yesTokenAddress as `0x${string}`,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [PredictionContractAddress as `0x${string}`, approveAmount],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       await publicClient.waitForTransactionReceipt({ hash: approveYesTokenHash });
       console.log("Approve yes token transaction hash:", approveYesTokenHash);
 
       //Approve no token for spending into Prediction contract
+      console.log("🔐 Approving no token:", {
+        noTokenAddress,
+        predictionContractAddress: PredictionContractAddress,
+        approveAmount: approveAmount.toString()
+      });
+      
       const approveNoTokenHash = await walletClient.writeContract({
         address: noTokenAddress as `0x${string}`,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [PredictionContractAddress as `0x${string}`, approveAmount],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       await publicClient.waitForTransactionReceipt({ hash: approveNoTokenHash });
       console.log("Approve no token transaction hash:", approveNoTokenHash);
@@ -188,41 +325,49 @@ export function useContract() {
     amount: number;
     position: "YES" | "NO";
   }): Promise<string> => {
-    if (!primaryWallet) {
-      throw new Error("No wallet connected");
-    }
+    const wallet = getWallet();
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const provider = await primaryWallet.getEthereumProvider();
+      const provider = await wallet.getEthereumProvider();
 
       const walletClient = getWalletClient(provider);
-
-      const amountWei = parseEther(params.amount.toString());
+      const publicClient = getPublicClient(provider);
+      const amountWei = BigInt(params.amount * 1_000_000); // Convert to 6 decimal places
 
       // First, approve the prediction contract to spend tokens
+      const approveAmount = parseEther("1000");
+
+      const allowance = await publicClient.readContract({
+        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [wallet.address as `0x${string}`, params.predictionAddress as `0x${string}`],
+      });
+      console.log("Allowance:", allowance);
+      if (allowance < amountWei) {
       const approveHash = await walletClient.writeContract({
-        address: STAKE_TOKEN_ADDRESS,
+        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [params.predictionAddress as `0x${string}`, amountWei],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
-
+      const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
       console.log("Approve transaction hash:", approveHash);
+     }
 
-      // Wait a bit for approval (in production, wait for receipt)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Then place the bet
+      const votePosition = params.position === "YES" ? 0 : 1;
       const voteHash = await walletClient.writeContract({
         address: params.predictionAddress as `0x${string}`,
         abi: PREDICTION_ABI,
-        functionName: "vote",
-        args: [params.position === "YES", amountWei],
-        account: primaryWallet.address as `0x${string}`,
+        functionName: "buyTokensWithPYUSD",
+        args: [votePosition, amountWei],
+        account: wallet.address as `0x${string}`,
       });
 
       console.log("Vote transaction hash:", voteHash);
@@ -241,19 +386,17 @@ export function useContract() {
 
   const resolvePrediction = async (params: {
     predictionAddress: string;
-    highPriceData:string;
-    lowPriceData:string;
-    currentPriceData:string;
+    highPriceData: string | null;
+    lowPriceData: string | null;
+    currentPriceData: string | null;
   }): Promise<string[]> => {
-    if (!primaryWallet) {
-      throw new Error("No wallet connected");
-    }
+    const wallet = getWallet();
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const provider = await primaryWallet.getEthereumProvider();
+      const provider = await wallet.getEthereumProvider();
 
       const walletClient = getWalletClient(provider);
       const publicClient = getPublicClient(provider);
@@ -263,7 +406,7 @@ export function useContract() {
         abi: PREDICTION_ABI,
         functionName: "report",
         args: [params.highPriceData],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       const resolveP1Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP1Hash });
       console.log("Resolve P1 transaction hash:", resolveP1Hash);
@@ -273,7 +416,7 @@ export function useContract() {
         abi: PREDICTION_ABI,
         functionName: "report",
         args: [params.lowPriceData],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       const resolveP2Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP2Hash });
       console.log("Resolve P2 transaction hash:", resolveP2Hash);
@@ -283,7 +426,7 @@ export function useContract() {
         abi: PREDICTION_ABI,
         functionName: "report",
         args: [params.currentPriceData],
-        account: primaryWallet.address as `0x${string}`,
+        account: wallet.address as `0x${string}`,
       });
       const resolveP3Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP3Hash });
       console.log("Resolve P3 transaction hash:", resolveP3Hash);
@@ -298,18 +441,16 @@ export function useContract() {
     }
   };
 
-  
+
 
   /**
    * Get current pools for a prediction
    */
   const getPredictionPools = async (predictionAddress: string) => {
-    if (!primaryWallet) {
-      throw new Error("No wallet connected");
-    }
+    const wallet = getWallet();
 
     try {
-      const provider = await primaryWallet.getEthereumProvider();
+      const provider = await wallet.getEthereumProvider();
 
       const walletClient = getWalletClient(provider);
 
@@ -328,14 +469,41 @@ export function useContract() {
     }
   };
 
+  const getOutcome = async (predictionAddress: string): Promise<number> => {
+    const wallet = getWallet();
+
+    try {
+      const provider = await wallet.getEthereumProvider();
+      const publicClient = getPublicClient(provider);
+
+      const outcome = await publicClient.readContract({
+        address: predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "outcome",
+      });
+
+      return Number(outcome);
+    } catch (err: any) {
+      const errorMsg = err.message || "Failed to get outcome";
+      setError(errorMsg);
+      setIsLoading(false);
+      throw new Error(errorMsg);
+    }
+  }
   return {
     createPrediction,
     placeBet,
     getPredictionPools,
     resolvePrediction,
+    getOutcome,
+    ensureWallet,
+    getWallet,
     isLoading,
     error,
-    isConnected: !!primaryWallet,
+    isConnected: readyAuth && authenticated && readyWallets && wallets.length > 0,
+    isReady: readyAuth && readyWallets,
+    wallets,
+    primaryWallet,
     getblockNumber
   };
 }

@@ -7,9 +7,10 @@ import BetModal from "@/components/bet-modal";
 import LoginModal from "@/components/login-modal";
 import ChatModal from "@/components/chat-modal";
 import { usePredictionsStore, useUserStore } from "@/lib/store";
-import type { PredictionWithRelations, BetPosition } from "@/lib/types";
+import { type PredictionWithRelations, type BetPosition, TradeDirection } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useContract } from "@/lib/hooks/useContract";
 
 export default function DiscoverPage() {
   const { authenticated } = useAuth();
@@ -93,11 +94,15 @@ export default function DiscoverPage() {
     if (!selectedPrediction || !user) return;
 
     try {
-      // The BetModal will handle the actual bet placement
-      // This is just a callback after successful placement
+      const { placeBet } = useContract();
+      await placeBet({
+        predictionAddress: selectedPrediction.address,
+        amount: amount,
+        position: betPosition // Using the betPosition state that was set in handleSwipeLeft/Right
+      });
       setShowModal(false);
     } catch (error) {
-      console.error("Error in bet callback:", error);
+      console.error("Error placing bet:", error);
     }
   };
 
