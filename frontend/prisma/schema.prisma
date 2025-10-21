@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -21,18 +22,18 @@ model User {
     // Relations
     predictions Prediction[]
     bets        Bet[]
-    
+
     // Follow relations
-    following   Follow[] @relation("UserFollowing")
-    followers   Follow[] @relation("UserFollowers")
+    following Follow[] @relation("UserFollowing")
+    followers Follow[] @relation("UserFollowers")
 
     @@map("users")
 }
 
 model Follow {
     id          String   @id @default(cuid())
-    followerId  String   // User who is following
-    followingId String   // User being followed
+    followerId  String // User who is following
+    followingId String // User being followed
     createdAt   DateTime @default(now())
 
     // Relations
@@ -46,28 +47,28 @@ model Follow {
 }
 
 model Prediction {
-    id          String           @id @default(cuid())
-    title       String
-    description String
-    tradeImage  String? // URL to uploaded trade screenshot
-    orderId     String? // Optional order ID from trading platform
-    targetPrice Decimal? // Take profit price
-    entryPrice  Decimal? // Entry price
-    symbol      String // Trading pair (e.g., BTC/USD)
-    direction   TradeDirection // LONG or SHORT
-    status      PredictionStatus @default(ACTIVE)
-    address     String // Unique address for the prediction
+    id              String           @id @default(cuid())
+    title           String
+    description     String
+    tradeImage      String? // URL to uploaded trade screenshot
+    orderId         String? // Optional order ID from trading platform
+    targetPrice     Decimal? // Take profit price
+    entryPrice      Decimal? // Entry price
+    symbol          String // Trading pair (e.g., BTC/USD)
+    direction       TradeDirection // LONG or SHORT
+    status          PredictionStatus @default(ACTIVE)
+    address         String // Unique address for the prediction
     // Betting pool
-    totalPool   Decimal          @default(0)
-    yesPool     Decimal          @default(0)
-    noPool      Decimal          @default(0)
+    totalPool       Decimal          @default(0)
+    yesPool         Decimal          @default(0)
+    noPool          Decimal          @default(0)
     yesTokenAddress String?
-    noTokenAddress String?
+    noTokenAddress  String?
     // Timing
-    expiresAt  DateTime
-    resolvedAt DateTime?
-    createdAt  DateTime  @default(now())
-    updatedAt  DateTime  @updatedAt
+    expiresAt       DateTime
+    resolvedAt      DateTime?
+    createdAt       DateTime         @default(now())
+    updatedAt       DateTime         @updatedAt
 
     // Relations
     creatorId String
