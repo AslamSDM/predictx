@@ -18,6 +18,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
       appId={appId}
+      clientId="client-WY6RdvXJrVF5dcFGH6KBKPZFp6pNmMAB5tCfrg7DPpWXR"
       config={{
         // Customize Privy's appearance
         appearance: {
@@ -34,8 +35,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         // },
         embeddedWallets: {
           ethereum: {
-            createOnLogin: 'users-without-wallets',
-          }
+            createOnLogin: "users-without-wallets",
+          },
         },
       }}
     >
