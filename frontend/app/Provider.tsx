@@ -12,32 +12,30 @@ function UserSyncProvider({ children }: { children: React.ReactNode }) {
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const appId =
-    process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmgw07e3q00g0jr0dqsvefagx";
+  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
+  const clientId = process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID!;
 
   return (
     <PrivyProvider
       appId={appId}
-      clientId="client-WY6RdvXJrVF5dcFGH6KBKPZFp6pNmMAB5tCfrg7DPpWXR"
+      clientId={clientId}
       config={{
-        // Customize Privy's appearance
         appearance: {
           theme: "dark",
           accentColor: "#0EA5E9",
           logo: "/icons/icon-192x192.png",
         },
-        // Login methods - only email and Telegram
-        loginMethods: ["email", "telegram"],
+        loginMethods: ["email", "google"],
         defaultChain: sepolia,
         supportedChains: [sepolia],
         externalWallets: {
           disableAllExternalWallets: true
         },
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: "all-users",
-          },
-        },
+        // embeddedWallets: {
+        //   ethereum: {
+        //     createOnLogin: "off",
+        //   },
+        // },
       }}
     >
       <UserSyncProvider>{children}</UserSyncProvider>
