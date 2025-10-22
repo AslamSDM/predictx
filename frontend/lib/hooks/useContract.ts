@@ -8,7 +8,6 @@ import type { TradeDirection } from "@/lib/types";
 import { getPublicClient, getWalletClient } from "../web3";
 import { ERC20_ABI, PREDICTION_ABI, PREDICTION_FACTORY_ABI } from "@/lib/web3/abi";
 import { PREDICTION_FACTORY_ADDRESS, STAKE_TOKEN_ADDRESS } from "../web3/address";
-import { decodeEventLog } from "viem";
 
 export function useContract() {
   const [isLoading, setIsLoading] = useState(false);
@@ -396,9 +395,9 @@ export function useContract() {
         abi: PREDICTION_ABI,
         functionName: "initialTokenValue",
       });
-      const initialTokenSupply = (Number(pyUSD) / Number(initialTokenValue))*(10**6);
-      const yesTokenSupply =  initialTokenSupply   -  (Number(yesToken)/(10**6));
-      const noTokenSupply  =  initialTokenSupply   -  (Number(noToken)/(10**6));
+      const initialTokenSupply = (Number(pyUSD) / Number(initialTokenValue)) * (10 ** 6);
+      const yesTokenSupply = initialTokenSupply - (Number(yesToken) / (10 ** 6));
+      const noTokenSupply = initialTokenSupply - (Number(noToken) / (10 ** 6));
 
 
       return {
@@ -484,7 +483,7 @@ export function useContract() {
         args: [wallet.address as `0x${string}`, predictionAddress as `0x${string}`],
       });
       if (allowance < parseEther("1")) {
-       console.log("User have no allowance for winning tokens")
+        console.log("User have no allowance for winning tokens")
         const approveHash = await walletClient.writeContract({
           address: winningTokenAddress as `0x${string}`,
           abi: ERC20_ABI,

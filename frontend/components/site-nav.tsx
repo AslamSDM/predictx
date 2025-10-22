@@ -6,10 +6,18 @@ import { cn } from "@/lib/utils";
 import WalletConnect from "./wallet-connect";
 import UserProfileDropdown from "./user-profile-dropdown";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useEffect } from "react";
+import { useCreateWallet, useWallets } from "@privy-io/react-auth";
 
 export default function SiteNav() {
   const pathname = usePathname();
-  const { authenticated } = useAuth();
+  const { ready, authenticated } = useAuth();
+  const { createWallet } = useCreateWallet()
+
+
+  useEffect(() => {
+    createWallet()
+  }, [authenticated])
 
   const link = (href: string, label: string) => (
     <Link

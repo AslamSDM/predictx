@@ -1,8 +1,6 @@
 "use client";
 import { useContract } from '@/lib/hooks/useContract';
 import { cn } from '@/lib/utils';
-import { getPublicClient } from '@/lib/web3';
-import { PREDICTION_ABI } from '@/lib/web3/abi';
 import { $Enums } from '@prisma/client';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import React, { useEffect, useState } from 'react'
@@ -88,7 +86,6 @@ export const ArrowUp = (props: IconProps) => (
 );
 
 function Prediction({ data }: Props) {
-
 
     const { getWallet } = useContract();
     const { ready: readyAuth, authenticated } = usePrivy()
@@ -192,7 +189,6 @@ function Prediction({ data }: Props) {
         }
     };
 
-
     return (
         <main className="bg-slate-950 text-white p-4 md:p-8 font-sans">
             {/* Header Section */}
@@ -278,7 +274,10 @@ function Prediction({ data }: Props) {
                         <CardTitle className="text-slate-100">Prediction Outcome</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {renderOutcome()}
+                        {readyWallets && renderOutcome()}
+                        {!readyWallets && (
+                            <div className="flex justify-center text-[#797979]">Connect Wallet to see outcome</div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
