@@ -327,7 +327,7 @@ export function useContract() {
     highPriceData: string | null;
     lowPriceData: string | null;
     currentPriceData: string | null;
-  }): Promise<string[]> => {
+  }): Promise<string> => {
     const wallet = getWallet();
 
     setIsLoading(true);
@@ -343,34 +343,18 @@ export function useContract() {
         address: params.predictionAddress as `0x${string}`,
         abi: PREDICTION_ABI,
         functionName: "report",
-        args: [params.highPriceData],
+        args: [params.highPriceData, params.lowPriceData, params.currentPriceData],
         account: wallet.address as `0x${string}`,
       });
       const resolveP1Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP1Hash });
-      console.log("Resolve P1 transaction hash:", resolveP1Hash);
+      console.log("Resolve transaction hash:", resolveP1Hash);
 
-      const resolveP2Hash = await walletClient.writeContract({
-        address: params.predictionAddress as `0x${string}`,
-        abi: PREDICTION_ABI,
-        functionName: "report",
-        args: [params.lowPriceData],
-        account: wallet.address as `0x${string}`,
-      });
-      const resolveP2Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP2Hash });
-      console.log("Resolve P2 transaction hash:", resolveP2Hash);
 
-      const resolveP3Hash = await walletClient.writeContract({
-        address: params.predictionAddress as `0x${string}`,
-        abi: PREDICTION_ABI,
-        functionName: "report",
-        args: [params.currentPriceData],
-        account: wallet.address as `0x${string}`,
-      });
-      const resolveP3Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP3Hash });
-      console.log("Resolve P3 transaction hash:", resolveP3Hash);
+
+
 
       setIsLoading(false);
-      return [String(resolveP1Hash), String(resolveP2Hash), String(resolveP3Hash)];
+      return resolveP1Hash;
     } catch (err: any) {
       const errorMsg = err.message || "Failed to place bet";
       setError(errorMsg);
@@ -391,15 +375,35 @@ export function useContract() {
       const provider = await wallet.getEthereumProvider();
 
       const walletClient = getWalletClient(provider);
+      const publicClient = getPublicClient(provider);
+      const yesToken = await publicClient.readContract({
+        address: predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "yesToken",
+      });
+      const noToken = await publicClient.readContract({
+        address: predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "noToken",
+      });
+      const pyUSD = await publicClient.readContract({
+        address: predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "pyUSD",
+      });
+      const initialTokenValue = await publicClient.readContract({
+        address: predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "initialTokenValue",
+      });
+      const initialTokenSupply = (Number(pyUSD) / Number(initialTokenValue))*(10**6);
+      const yesTokenSupply =  initialTokenSupply   -  (Number(yesToken)/(10**6));
+      const noTokenSupply  =  initialTokenSupply   -  (Number(noToken)/(10**6));
 
-
-      // Read yesPool and noPool
-      // Note: You'll need a publicClient for read operations
-      // This is a simplified version
 
       return {
-        yesPool: 0,
-        noPool: 0,
+        yesTokenSupply: yesTokenSupply,
+        noTokenSupply: noTokenSupply,
       };
     } catch (err: any) {
       console.error("Failed to get pools:", err);

@@ -64,15 +64,13 @@ export default function ResolvePage() {
     const feedIdMap: Record<string, string> = {
       "1INCHUSD":
         "0x63f341689d98a12ef60a5cff1d7f85c70a9e17bf1575f0e7c0b2512d48b1c8b3",
-      AAVEUSD:
+      "AAVEUSD":
         "0x2b9ab1e972a281585084148ba1389800799bd4be63b957507db1349314e47445",
-      BITCOINUSD:
+      "BITCOINUSD":
         "0xc5e0e0c92116c0c070a242b254270441a6201af680a33e0381561c59db3266c9",
-      BTCUSD:
-        "0xc5e0e0c92116c0c070a242b254270441a6201af680a33e0381561c59db3266c9", // Alias for BITCOINUSD
-      BNBUSD:
+      "BNBUSD":
         "0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f",
-      ETHUSD:
+      "ETHUSD":
         "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
     };
 
