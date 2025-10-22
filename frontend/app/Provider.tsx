@@ -30,12 +30,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         loginMethods: ["email", "telegram"],
         defaultChain: sepolia,
         supportedChains: [sepolia],
-        // externalWallets: {
-        //   disableAllExternalWallets: true
-        // },
+        externalWallets: {
+          disableAllExternalWallets: true
+        },
         embeddedWallets: {
           ethereum: {
-            createOnLogin: "users-without-wallets",
+            createOnLogin: "all-users",
           },
         },
       }}

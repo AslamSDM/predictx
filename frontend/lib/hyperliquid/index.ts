@@ -32,11 +32,16 @@ export const getCandleSnapshot = async ({ asset, interval, startTime, endTime }:
 
 export const getHighAndLow = async ({ asset, interval, startTime, endTime }: HistoryProps) => {
     const candles = await getCandleSnapshot({ asset, interval, startTime, endTime });
+    console.log("🔍 Candles:", candles);
     const highs = candles.map(c => Number(c.h));
+    console.log("🔍 Highs:", highs);
     const lows = candles.map(c => Number(c.l));
+    console.log("🔍 Lows:", lows);
 
     const maxPrice = Math.max(...highs);
+    console.log("🔍 Max Price:", maxPrice);
     const minPrice = Math.min(...lows);
+    console.log("🔍 Min Price:", minPrice);
     
     // Find the candle with the highest price
     const highCandle = candles.find(c => Number(c.h) === maxPrice);

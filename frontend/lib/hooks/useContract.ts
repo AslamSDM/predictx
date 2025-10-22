@@ -321,6 +321,22 @@ export function useContract() {
   };
 
 
+const getEndsAndStartTimes = async (predictionAddress: string) => {
+  const wallet = getWallet();
+  const provider = await wallet.getEthereumProvider();
+  const publicClient = getPublicClient(provider);
+  const endTime = await publicClient.readContract({
+    address: predictionAddress as `0x${string}`,
+    abi: PREDICTION_ABI,
+    functionName: "endTime",
+  })
+  const startTime = await publicClient.readContract({
+    address: predictionAddress as `0x${string}`,
+    abi: PREDICTION_ABI,
+    functionName: "startTime",
+  })
+  return { endTime, startTime };
+}
 
   const resolvePrediction = async (params: {
     predictionAddress: string;
@@ -339,19 +355,81 @@ export function useContract() {
       const walletClient = getWalletClient(provider);
       const publicClient = getPublicClient(provider);
 
+      const endTime=await publicClient.readContract({
+        address: params.predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "endTime",
+        args: [],
+      })
+
+      console.log("END TIME --------> ", endTime)
+      console.log("Price data params:", {
+        highPriceData: params.highPriceData,
+        lowPriceData: params.lowPriceData,
+        currentPriceData: params.currentPriceData
+      });
+
+      // Validate that we have at least current price data
+      if (!params.currentPriceData) {
+        throw new Error("Current price data is required for resolution");
+      }
+
+      // Ensure all price data is valid hex strings and not null/undefined
+      const highPriceDataArray = (params.highPriceData && typeof params.highPriceData === 'string' && params.highPriceData.startsWith('0x')) ? [params.highPriceData] : [];
+      const lowPriceDataArray = (params.lowPriceData && typeof params.lowPriceData === 'string' && params.lowPriceData.startsWith('0x')) ? [params.lowPriceData] : [];
+      const currentPriceDataArray = (params.currentPriceData && typeof params.currentPriceData === 'string' && params.currentPriceData.startsWith('0x')) ? [params.currentPriceData] : [];
+
+      console.log("Final price data arrays:", {
+        highPriceDataArray,
+        lowPriceDataArray,
+        currentPriceDataArray,
+        highPriceDataLength: highPriceDataArray.length,
+        lowPriceDataLength: lowPriceDataArray.length,
+        currentPriceDataLength: currentPriceDataArray.length
+      });
+
+      // Additional validation to ensure arrays are properly formatted
+      if (currentPriceDataArray.length === 0) {
+        throw new Error("Current price data is required and must be a valid hex string");
+      }
+
+      // Validate all parameters before making the contract call
+      const contractArgs = [
+        highPriceDataArray,
+        lowPriceDataArray,
+        currentPriceDataArray
+      ];
+
+      console.log("Contract call parameters:", {
+        address: params.predictionAddress,
+        functionName: "report",
+        args: contractArgs,
+        account: wallet.address,
+        value: "0.0001 ETH"
+      });
+
+      // Ensure all args are properly formatted
+      contractArgs.forEach((arg, index) => {
+        if (!Array.isArray(arg)) {
+          throw new Error(`Argument ${index} is not an array: ${typeof arg}`);
+        }
+        arg.forEach((item, itemIndex) => {
+          if (typeof item !== 'string' || !item.startsWith('0x')) {
+            throw new Error(`Item ${itemIndex} in argument ${index} is not a valid hex string: ${item}`);
+          }
+        });
+      });
+
       const resolveP1Hash = await walletClient.writeContract({
         address: params.predictionAddress as `0x${string}`,
         abi: PREDICTION_ABI,
         functionName: "report",
-        args: [params.highPriceData, params.lowPriceData, params.currentPriceData],
+        args: contractArgs,
         account: wallet.address as `0x${string}`,
+        value: 100000000000000n // Use BigInt literal instead of BigInt() constructor
       });
       const resolveP1Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP1Hash });
       console.log("Resolve transaction hash:", resolveP1Hash);
-
-
-
-
 
       setIsLoading(false);
       return resolveP1Hash;
@@ -529,6 +607,7 @@ export function useContract() {
     primaryWallet,
     getblockNumber,
     getWinningToken,
-    redeemWinningTokens
+    redeemWinningTokens,
+    getEndsAndStartTimes
   };
 }

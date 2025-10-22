@@ -17,7 +17,7 @@ import {
   Target,
 } from "lucide-react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { PredictionWithRelations } from "@/lib/types";
 
 export default function ResolvePage() {
@@ -26,10 +26,7 @@ export default function ResolvePage() {
   const [predictions, setPredictions] = useState<PredictionWithRelations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const [selectedPrediction, setSelectedPrediction] =
-    useState<PredictionWithRelations | null>(null);
-  const [showResolveModal, setShowResolveModal] = useState(false);
-  const { resolvePrediction,getOutcome, isLoading: isContractLoading } = useContract();
+  const { resolvePrediction,getOutcome, getEndsAndStartTimes, isLoading: isContractLoading } = useContract();
 
   // Fetch expired predictions that need resolution
   useEffect(() => {
@@ -78,10 +75,10 @@ export default function ResolvePage() {
   };
 
   // Helper function to fetch price data from Hermes API
-  const fetchPriceFromHermes = async (feedId: string, timestamp?: number): Promise<PythPriceFeed> => {
+  const fetchPriceFromHermes = async (feedId: string, timestamp?: number,current:boolean=false): Promise<PythPriceFeed> => {
     try {
       // Use current timestamp if not provided      
-      const hermesUrl = `https://hermes.pyth.network/v2/updates/price/${timestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
+      const hermesUrl = current ? `https://hermes.pyth.network/v2/updates/price/latest?ids%5B%5D=${feedId}&encoding=hex&parsed=true` : `https://hermes.pyth.network/v2/updates/price/${timestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
 
       console.log("🔍 Fetching price from Hermes API:", hermesUrl);
 
@@ -108,12 +105,19 @@ export default function ResolvePage() {
     }
   };
 
-  const handleResolve = async (
-    prediction: PredictionWithRelations,
-    outcome: "YES" | "NO"
-  ) => {
+  const handleResolve = async (prediction: PredictionWithRelations) => {
     if (!user) {
       alert("Please login to resolve predictions");
+      return;
+    }
+
+    // Check if prediction is actually expired
+    const now = Math.floor(Date.now() / 1000);
+    const expiryTime = Math.floor(new Date(prediction.expiresAt).getTime() / 1000);
+    
+    
+    if (now < expiryTime) {
+      alert("This prediction has not expired yet. Please wait until after the expiry time.");
       return;
     }
 
@@ -136,11 +140,13 @@ export default function ResolvePage() {
       console.log("🔗 Using Pyth feed ID:", feedId);
 
       // Step 3: Fetch price data from Hermes API
+      console.log("prediction.createdAt", prediction.createdAt);
+      console.log("prediction.expiresAt", prediction.expiresAt);
       const [high, low] = await getHighAndLow({
-        asset: symbol, 
+        asset: symbol.replace("USD", ""),
         interval: "1m", 
-        startTime: new Date(prediction.createdAt).getTime(), 
-        endTime: new Date(prediction.expiresAt).getTime()
+        startTime: new Date(new Date(prediction.createdAt).getTime() + 70000).getTime(),
+        endTime: new Date(new Date(prediction.expiresAt).getTime() - 70000).getTime()
       });
       console.log("🔍 High and low prices:", high, low);
 
@@ -149,8 +155,8 @@ export default function ResolvePage() {
       let currentPriceData: PythPriceFeed | null;
       try {
         const currentTimestamp = Math.floor(Date.now() / 1000);
-        highPriceData = await fetchPriceFromHermes(feedId, high.timestamp);
-        lowPriceData = await fetchPriceFromHermes(feedId, low.timestamp);
+        highPriceData = await fetchPriceFromHermes(feedId, Math.floor((high.timestamp || 0) / 1000));
+        lowPriceData = await fetchPriceFromHermes(feedId, Math.floor((low.timestamp || 0) / 1000));
         currentPriceData = await fetchPriceFromHermes(feedId, currentTimestamp);
         
         // Extract actual price values
@@ -171,24 +177,29 @@ export default function ResolvePage() {
         currentPriceData = null;
       }
 
+      // Ensure we have valid price data before calling the contract
+      if (!currentPriceData?.binary.data[0]) {
+        throw new Error("Failed to fetch current price data from Pyth");
+      }
+      if (!highPriceData?.binary.data[0]) {
+        throw new Error("Failed to fetch high price data from Pyth");
+      }
+      if (!lowPriceData?.binary.data[0]) {
+        throw new Error("Failed to fetch low price data from Pyth");
+      }
+
       const [resolveP1Hash, resolveP2Hash, resolveP3Hash] = await resolvePrediction({
         predictionAddress: prediction.address,
-        highPriceData: highPriceData?.binary.data[0] || null,
-        lowPriceData: lowPriceData?.binary.data[0]  || null,
-        currentPriceData: currentPriceData?.binary.data[0] || null
+        highPriceData: highPriceData?.binary.data[0] ? `0x${highPriceData.binary.data[0]}` : undefined,
+        lowPriceData: lowPriceData?.binary.data[0] ? `0x${lowPriceData.binary.data[0]}` : undefined,
+        currentPriceData: currentPriceData?.binary.data[0] ? `0x${currentPriceData.binary.data[0]}` : undefined
       });
-
-      const outcome = await getOutcome(prediction.address);
-      if (outcome === null || outcome === undefined) {
-        throw new Error("Failed to get outcome");
-      }
 
       // Step 4: Send resolution request to backend with price data
       const res = await fetch(`/api/predictions/${prediction.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          outcome: outcome === 0 ? "YES" : "NO",
           resolvedBy: user.id,
           symbol,
           feedId,
@@ -204,8 +215,6 @@ export default function ResolvePage() {
 
         // Remove from list
         setPredictions((prev) => prev.filter((p) => p.id !== prediction.id));
-        setShowResolveModal(false);
-        setSelectedPrediction(null);
 
         // Show success message
         alert(`Successfully resolved! You earned a resolution fee! 🎉`);
@@ -499,10 +508,7 @@ export default function ResolvePage() {
 
                     {/* Action Button */}
                     <button
-                      onClick={() => {
-                        setSelectedPrediction(prediction);
-                        setShowResolveModal(true);
-                      }}
+                      onClick={() => handleResolve(prediction)}
                       disabled={!authenticated || resolvingId === prediction.id}
                       className="w-full px-6 py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
@@ -527,128 +533,6 @@ export default function ResolvePage() {
         )}
       </div>
 
-      {/* Resolution Modal */}
-      <AnimatePresence>
-        {showResolveModal && selectedPrediction && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-              onClick={() => {
-                setShowResolveModal(false);
-                setSelectedPrediction(null);
-              }}
-            />
-
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-0 flex items-center justify-center z-50 p-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-card border-2 border-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-                {/* Header */}
-                <div className="p-6 border-b border-border bg-gradient-to-br from-primary/10 to-accent/30">
-                  <h2 className="text-2xl font-bold mb-2">
-                    Resolve Prediction
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Choose the outcome based on whether the target was reached
-                  </p>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  <div className="mb-6">
-                    <h3 className="font-bold text-lg mb-2">
-                      {selectedPrediction.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                      <span>{selectedPrediction.symbol}</span>
-                      <span>•</span>
-                      <span>{selectedPrediction.direction}</span>
-                      <span>•</span>
-                      <span>
-                        ${formatAmount(selectedPrediction.entryPrice)} → $
-                        {formatAmount(selectedPrediction.targetPrice)}
-                      </span>
-                    </div>
-                    <div className="bg-background/50 rounded-lg p-4">
-                      <div className="text-sm mb-2">
-                        <span className="text-muted-foreground">
-                          Total Pool:
-                        </span>
-                        <span className="font-bold ml-2">
-                          ${formatAmount(selectedPrediction.totalPool)}
-                        </span>
-                      </div>
-                      <div className="text-sm text-green-600 dark:text-green-400 font-bold">
-                        Your Resolution Fee: $
-                        {calculateResolutionFee(selectedPrediction.totalPool)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Resolution Options */}
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => handleResolve(selectedPrediction, "YES")}
-                      disabled={resolvingId === selectedPrediction.id}
-                      className="w-full p-6 bg-green-500/10 hover:bg-green-500/20 border-2 border-green-500/30 hover:border-green-500 rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="text-left">
-                          <div className="text-lg font-bold text-green-600 dark:text-green-400 mb-1">
-                            YES - Target Reached ✓
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            The prediction was correct, target price was hit
-                          </div>
-                        </div>
-                        <TrendingUp className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform" />
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => handleResolve(selectedPrediction, "NO")}
-                      disabled={resolvingId === selectedPrediction.id}
-                      className="w-full p-6 bg-red-500/10 hover:bg-red-500/20 border-2 border-red-500/30 hover:border-red-500 rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="text-left">
-                          <div className="text-lg font-bold text-red-600 dark:text-red-400 mb-1">
-                            NO - Target Not Reached ✗
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            The prediction failed, target price was not hit
-                          </div>
-                        </div>
-                        <TrendingDown className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform" />
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* Cancel Button */}
-                  <button
-                    onClick={() => {
-                      setShowResolveModal(false);
-                      setSelectedPrediction(null);
-                    }}
-                    className="w-full mt-4 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
