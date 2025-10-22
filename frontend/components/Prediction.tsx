@@ -95,25 +95,32 @@ function Prediction({ data }: Props) {
     const { ready: readyWallets } = useWallets();
 
     const [outcome, setOutcome] = useState<Outcome | null>(null);
+    const [winningAddress, setWinningAddress] = useState<string | null>(null);
+
+    const { getWinningToken, getOutcome, redeemWinningTokens } = useContract()
+
+
+    const predictionAddress = "0x091B6b05cDaa62966dac04205d46d5519339AA2D"  // data.address
+
+
 
     useEffect(() => {
         if (readyAuth && readyWallets && authenticated) {
-            console.log("YOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
             const wallet = getWallet();
 
             const getOutComeStatus = async () => {
-                const provider = await wallet.getEthereumProvider();
-                const publicClient = getPublicClient(provider);
 
-                const outcome = await publicClient.readContract({
-                    address: "0x091B6b05cDaa62966dac04205d46d5519339AA2D",
-                    abi: PREDICTION_ABI,
-                    functionName: "outcome",
-                }) as Outcome;
+                const predictionOutCome = await getOutcome(predictionAddress);
+                setOutcome(predictionOutCome)
 
-                setOutcome(outcome)
+                console.log("PREDICTION OUTCOME --------> ", predictionOutCome)
 
-                console.log("YEEEEEEEEEEEEEEEEE", outcome)
+                if (predictionOutCome != 2) {
+                    const wtoken = await getWinningToken(predictionAddress);
+                    setWinningAddress(wtoken);
+                    console.log("WINING TOKEN ---------------> ", wtoken)
+                }
+
             }
 
             getOutComeStatus()
@@ -132,6 +139,13 @@ function Prediction({ data }: Props) {
         minute: "numeric",
         hour12: true,
     }).format(data.expiresAt);
+
+    const handleRedeem = async () => {
+        if (!winningAddress) {
+            throw Error("no winning token address")
+        }
+        await redeemWinningTokens(predictionAddress, winningAddress);
+    }
 
     const renderOutcome = () => {
         if (outcome === null) {
@@ -164,10 +178,13 @@ function Prediction({ data }: Props) {
                                 {Outcome[outcome]}
                             </span>
                         </p>
-                        <button className={cn(
-                            "w-full max-w-sm text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors duration-300 shadow-lg",
-                            isYes ? "bg-green-600 hover:bg-green-700 shadow-green-500/30" : "bg-red-600 hover:bg-red-700 shadow-red-500/30"
-                        )}>
+                        <button
+                            className={cn(
+                                "w-full max-w-sm text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors duration-300 shadow-lg",
+                                isYes ? "bg-green-600 hover:bg-green-700 shadow-green-500/30" : "bg-red-600 hover:bg-red-700 shadow-red-500/30"
+                            )}
+                            onClick={handleRedeem}
+                        >
                             Redeem your {Outcome[outcome]} tokens
                         </button>
                     </div>
@@ -260,7 +277,7 @@ function Prediction({ data }: Props) {
             <div className="mt-8">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-slate-100">Outcome</CardTitle>
+                        <CardTitle className="text-slate-100">Prediction Outcome</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {renderOutcome()}

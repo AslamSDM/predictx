@@ -429,6 +429,69 @@ export function useContract() {
     }
   }
 
+  const getWinningToken = async (predictionAddress: string): Promise<string> => {
+    const wallet = getWallet();
+
+    try {
+      const provider = await wallet.getEthereumProvider();
+      const publicClient = getPublicClient(provider);
+
+      const winningToken = await publicClient.readContract({
+        address: predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "winningToken",
+      });
+
+      return String(winningToken);
+    } catch (err: any) {
+      const errorMsg = err.message || "Failed to get outcome";
+      setError(errorMsg);
+      setIsLoading(false);
+      throw new Error(errorMsg);
+    }
+  }
+
+  const redeemWinningTokens = async (predictionAddress: string, winningTokenAddress: string) => {
+    const wallet = getWallet();
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const provider = await wallet.getEthereumProvider();
+
+      const walletClient = getWalletClient(provider);
+      const publicClient = getPublicClient(provider);
+
+      const balance = await publicClient.readContract({
+        address: winningTokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [wallet.address as `0x${string}`],
+      });
+
+      if (balance <= BigInt(0)) {
+        throw Error("User have no  Winning Token balance")
+      }
+
+      const redeemTxn = await walletClient.writeContract({
+        address: predictionAddress as `0x${string}`,
+        abi: PREDICTION_ABI,
+        functionName: "redeemWinningTokens",
+        args: [balance],
+        account: wallet.address as `0x${string}`,
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash: redeemTxn });
+
+    } catch (err: any) {
+      const errorMsg = err.message || "Failed to place bet";
+      setError(errorMsg);
+      setIsLoading(false);
+      throw new Error(errorMsg);
+    }
+  };
+
   return {
     createPrediction,
     placeBet,
@@ -443,6 +506,8 @@ export function useContract() {
     isReady: readyAuth && readyWallets,
     wallets,
     primaryWallet,
-    getblockNumber
+    getblockNumber,
+    getWinningToken,
+    redeemWinningTokens
   };
 }
