@@ -9,22 +9,28 @@ type PaperPageProps = {
 export default async function ExamPage({ params }: PaperPageProps) {
     const { id: predictionId } = await params;
 
-    const data = await prisma.prediction.findUnique({
+    const predictionData = await prisma.prediction.findUnique({
         where: {
             id: predictionId
-        },
-        select: {
-            address: true
         }
     });
 
-    if (!data) {
+    if (!predictionData) {
         return <>No such prediction</>
     }
 
+    const serializedPrediction = {
+        ...predictionData,
+        targetPrice: predictionData.targetPrice!.toString(),
+        entryPrice: predictionData.entryPrice!.toString(),
+        totalPool: predictionData.totalPool.toString(),
+        yesPool: predictionData.yesPool.toString(),
+        noPool: predictionData.noPool.toString(),
+    };
+
     return (
         <>
-            <Prediction address={data.address} />
+            <Prediction data={serializedPrediction} />
         </>
     )
 }
