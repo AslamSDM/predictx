@@ -100,9 +100,7 @@ function Prediction({ data }: Props) {
     const { getWinningToken, getOutcome, redeemWinningTokens } = useContract()
 
 
-    const predictionAddress = "0x091B6b05cDaa62966dac04205d46d5519339AA2D"  // data.address
-
-
+    const predictionAddress = data.address // "0x091B6b05cDaa62966dac04205d46d5519339AA2D"
 
     useEffect(() => {
         if (readyAuth && readyWallets && authenticated) {
