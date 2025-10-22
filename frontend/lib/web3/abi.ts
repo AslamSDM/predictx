@@ -25,6 +25,14 @@ const ERC20_ABI = [
         stateMutability: "view",
         type: "function",
     },
+    {
+        inputs: [{ name: "account", type: "address" }],
+        name: "balanceOf",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+    },
 ] as const;
+
 
 export { ERC20_ABI };
