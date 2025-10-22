@@ -199,22 +199,20 @@ export default function ProfilePage() {
         <div className="flex gap-2 mb-6 border-b border-border">
           <button
             onClick={() => setActiveTab("predictions")}
-            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === "predictions"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "predictions"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             <TrendingUp className="w-4 h-4 inline mr-2" />
             My Predictions ({predictions.length})
           </button>
           <button
             onClick={() => setActiveTab("bets")}
-            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === "bets"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "bets"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             <DollarSign className="w-4 h-4 inline mr-2" />
             My Bets ({bets.length})
@@ -269,23 +267,21 @@ export default function ProfilePage() {
                           {prediction.symbol}
                         </span>
                         <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded ${
-                            prediction.direction === "LONG"
-                              ? "bg-green-500/20 text-green-500"
-                              : "bg-red-500/20 text-red-500"
-                          }`}
+                          className={`text-xs font-bold px-2 py-0.5 rounded ${prediction.direction === "LONG"
+                            ? "bg-green-500/20 text-green-500"
+                            : "bg-red-500/20 text-red-500"
+                            }`}
                         >
                           {prediction.direction}
                         </span>
                         <span
-                          className={`ml-auto text-xs px-2 py-1 rounded ${
-                            prediction.status === "ACTIVE"
-                              ? "bg-primary/20 text-primary"
-                              : prediction.status === "RESOLVED_YES" ||
-                                prediction.status === "RESOLVED_NO"
+                          className={`ml-auto text-xs px-2 py-1 rounded ${prediction.status === "ACTIVE"
+                            ? "bg-primary/20 text-primary"
+                            : prediction.status === "RESOLVED_YES" ||
+                              prediction.status === "RESOLVED_NO"
                               ? "bg-green-500/20 text-green-500"
                               : "bg-gray-500/20 text-gray-500"
-                          }`}
+                            }`}
                         >
                           {prediction.status}
                         </span>
@@ -333,42 +329,42 @@ export default function ProfilePage() {
               </div>
             ) : (
               bets.map((bet) => (
-                <div
-                  key={bet.id}
-                  className="bg-card rounded-xl border border-border p-6 hover:border-primary transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`px-3 py-1 rounded-full font-bold ${
-                          bet.position === "YES"
+                <a key={bet.id} href={`/prediction/${bet.predictionId}`}>
+                  <div
+                    className="bg-card rounded-xl border border-border p-6 hover:border-primary transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`px-3 py-1 rounded-full font-bold ${bet.position === "YES"
                             ? "bg-green-500/20 text-green-500"
                             : "bg-red-500/20 text-red-500"
-                        }`}
-                      >
-                        {bet.position}
+                            }`}
+                        >
+                          {bet.position}
+                        </div>
+                        <div className="text-2xl font-bold">
+                          ${formatAmount(bet.amount)}
+                        </div>
                       </div>
-                      <div className="text-2xl font-bold">
-                        ${formatAmount(bet.amount)}
+                      <div className="text-sm text-muted-foreground">
+                        {formatDate(bet.placedAt)}
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatDate(bet.placedAt)}
-                    </div>
+                    {bet.prediction && (
+                      <div className="pt-3 border-t border-border">
+                        <p className="text-sm font-medium mb-1">
+                          {bet.prediction.title}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{bet.prediction.symbol}</span>
+                          <span>•</span>
+                          <span>{bet.prediction.direction}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {bet.prediction && (
-                    <div className="pt-3 border-t border-border">
-                      <p className="text-sm font-medium mb-1">
-                        {bet.prediction.title}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{bet.prediction.symbol}</span>
-                        <span>•</span>
-                        <span>{bet.prediction.direction}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                </a>
               ))
             )}
           </div>
