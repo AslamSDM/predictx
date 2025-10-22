@@ -477,7 +477,24 @@ export function useContract() {
       if (balance <= BigInt(0)) {
         throw Error("User have no  Winning Token balance")
       }
-
+      const allowance = await publicClient.readContract({
+        address: winningTokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [wallet.address as `0x${string}`, predictionAddress as `0x${string}`],
+      });
+      if (allowance < parseEther("1")) {
+       console.log("User have no allowance for winning tokens")
+        const approveHash = await walletClient.writeContract({
+          address: winningTokenAddress as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [predictionAddress as `0x${string}`, parseEther("1000")],
+          account: wallet.address as `0x${string}`,
+        });
+        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        console.log("Approve transaction hash:", approveHash);
+      }
       const redeemTxn = await walletClient.writeContract({
         address: predictionAddress as `0x${string}`,
         abi: PREDICTION_ABI,
