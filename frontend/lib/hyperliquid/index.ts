@@ -20,6 +20,9 @@ type HistoryProps = {
 }
 
 export const getCandleSnapshot = async ({ asset, interval, startTime, endTime }: HistoryProps) => {
+    if (asset === "BITCOIN") {
+        asset = "BTC";
+    }
     const res = await infoClient.candleSnapshot({
         coin: asset,
         interval: interval,
@@ -27,10 +30,13 @@ export const getCandleSnapshot = async ({ asset, interval, startTime, endTime }:
         endTime: endTime
     });
 
+    console.log("🔍 Candle snapshot:", res);
+
     return res;
 }
 
 export const getHighAndLow = async ({ asset, interval, startTime, endTime }: HistoryProps) => {
+    console.log("🔍 Getting high and low for asset:", asset, "interval:", interval, "startTime:", startTime, "endTime:", endTime);
     const candles = await getCandleSnapshot({ asset, interval, startTime, endTime });
     console.log("🔍 Candles:", candles);
     const highs = candles.map(c => Number(c.h));

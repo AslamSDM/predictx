@@ -97,11 +97,12 @@ export default function DiscoverPage() {
     }
   };
 
+  const { placeBet } = useContract();
+
   const handlePlaceBet = async (amount: number) => {
     if (!selectedPrediction || !user) return;
 
     try {
-      const { placeBet } = useContract();
       await placeBet({
         predictionAddress: selectedPrediction.address,
         amount: amount,

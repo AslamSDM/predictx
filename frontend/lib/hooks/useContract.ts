@@ -284,12 +284,12 @@ export function useContract() {
         args: [wallet.address as `0x${string}`, params.predictionAddress as `0x${string}`],
       });
       console.log("Allowance:", allowance);
-      if (allowance < amountWei) {
+      if (allowance < parseEther("1")) {
         const approveHash = await walletClient.writeContract({
           address: STAKE_TOKEN_ADDRESS as `0x${string}`,
           abi: ERC20_ABI,
           functionName: "approve",
-          args: [params.predictionAddress as `0x${string}`, amountWei],
+          args: [params.predictionAddress as `0x${string}`, approveAmount],
           account: wallet.address as `0x${string}`,
         });
         const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });

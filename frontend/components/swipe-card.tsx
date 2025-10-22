@@ -45,8 +45,8 @@ export default function SwipeCard({
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
 
   // Overlay colors for swipe indicators
-  const yesOpacity = useTransform(x, [0, 100], [0, 1]);
-  const noOpacity = useTransform(x, [-100, 0], [1, 0]);
+  const yesOpacity = useTransform(x, [-100, 0], [1, 0]);
+  const noOpacity = useTransform(x, [0, 100], [0, 1]);
 
   const handleDragEnd = (
     event: MouseEvent | TouchEvent | PointerEvent,
@@ -62,13 +62,13 @@ export default function SwipeCard({
     if (absOffsetX > absOffsetY) {
       // Horizontal swipe - for betting (Left/Right)
       if (info.offset.x > horizontalThreshold) {
-        // Swipe Right - YES
+        // Swipe Right - NO
         setExitX(200);
-        setTimeout(() => onSwipeRight(prediction), 150);
-      } else if (info.offset.x < -horizontalThreshold) {
-        // Swipe Left - NO
-        setExitX(-200);
         setTimeout(() => onSwipeLeft(prediction), 150);
+      } else if (info.offset.x < -horizontalThreshold) {
+        // Swipe Left - YES
+        setExitX(-200);
+        setTimeout(() => onSwipeRight(prediction), 150);
       }
     } else {
       // Vertical swipe - for navigation (Up/Down)
