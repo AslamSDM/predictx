@@ -1,6 +1,6 @@
 import Prediction from "@/components/Prediction";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { PredictionStatus } from "@prisma/client";
 
 type PaperPageProps = {
     params: Promise<{ id: string }>;
@@ -9,20 +9,22 @@ type PaperPageProps = {
 export default async function ExamPage({ params }: PaperPageProps) {
     const { id: predictionId } = await params;
 
-    const predictionData = await prisma.prediction.findUnique({
+    const data = await prisma.prediction.findUnique({
         where: {
             id: predictionId
+        },
+        select: {
+            address: true
         }
     });
 
-    if (!predictionData) {
+    if (!data) {
         return <>No such prediction</>
     }
 
-
     return (
         <>
-            <Prediction data={predictionData} />
+            <Prediction address={data.address} />
         </>
     )
 }

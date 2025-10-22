@@ -44,7 +44,7 @@ export function useContract() {
       console.log("✅ Wallets loaded:", wallets);
       console.log("✅ User info:", user);
       console.log("✅ Primary wallet:", primaryWallet);
-      
+
       // Ensure wallet exists if user is authenticated but no wallets
       if (wallets.length === 0) {
         ensureWallet();
@@ -55,10 +55,10 @@ export function useContract() {
         console.log("✅ Primary wallet address:", primaryWallet.address);
       }
     } else {
-      console.log("⏳ Waiting for wallet initialization...", { 
-        readyAuth, 
-        authenticated, 
-        readyWallets, 
+      console.log("⏳ Waiting for wallet initialization...", {
+        readyAuth,
+        authenticated,
+        readyWallets,
         walletsCount: wallets.length,
         user: user?.id,
         primaryWalletAddress: primaryWallet?.address
@@ -71,15 +71,15 @@ export function useContract() {
     if (!readyAuth || !authenticated) {
       throw new Error("Please login first");
     }
-    
+
     if (!readyWallets) {
       throw new Error("Wallets are still loading");
     }
-    
+
     if (wallets.length === 0) {
       throw new Error("No wallet found. Please create a wallet first.");
     }
-    
+
     return primaryWallet;
   };
 
@@ -139,54 +139,54 @@ export function useContract() {
 
       console.log("Allowance:", allowance);
       if (allowance < parseEther("0.01")) {
-      const approveHash = await walletClient.writeContract({
-        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: "approve",
-        args: [PREDICTION_FACTORY_ADDRESS as `0x${string}`, approveAmount],
-        account: wallet.address as `0x${string}`,
+        const approveHash = await walletClient.writeContract({
+          address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [PREDICTION_FACTORY_ADDRESS as `0x${string}`, approveAmount],
+          account: wallet.address as `0x${string}`,
+        });
+        console.log("Approve transaction hash:", approveHash);
+      }
+      console.log("📋 Parameters received:", {
+        pairName: params.pairName,
+        direction: params.direction,
+        targetPrice: params.targetPrice,
+        endTime: params.endTime,
+        metadataURI: params.metadataURI,
+        initialLiquidity: params.initialLiquidity
       });
-      console.log("Approve transaction hash:", approveHash);
-    }
-    console.log("📋 Parameters received:", {
-      pairName: params.pairName,
-      direction: params.direction,
-      targetPrice: params.targetPrice,
-      endTime: params.endTime,
-      metadataURI: params.metadataURI,
-      initialLiquidity: params.initialLiquidity
-    });
 
-    // Convert parameters
+      // Convert parameters
       const directionEnum = params.direction === "LONG" ? 0 : 1; // 0 = Up, 1 = Down
-      
+
       // Add comprehensive validation before converting to BigInt
       if (!params.pairName || typeof params.pairName !== 'string') {
         throw new Error("pairName is required and must be a valid string");
       }
-      
+
       if (!params.direction || !['LONG', 'SHORT'].includes(params.direction)) {
         throw new Error("direction is required and must be either 'LONG' or 'SHORT'");
       }
-      
+
       if (params.targetPrice === undefined || params.targetPrice === null) {
         throw new Error("targetPrice is required and must be a valid number");
       }
-      
+
       if (!params.endTime) {
         throw new Error("endTime is required");
       }
-      
-      if (params.initialLiquidity === undefined || params.initialLiquidity === null ) {
+
+      if (params.initialLiquidity === undefined || params.initialLiquidity === null) {
         throw new Error("initialLiquidity is required and must be a valid number");
       }
 
-     
+
 
       // Convert to BigInt with proper validation
       // const targetPriceWei = BigInt(Math.floor(params.targetPrice * 100000000)); // Convert to 8 decimals
       // console.log("Target price wei:", targetPriceWei);
-      
+
 
       // Call createPrediction on factory
       console.log("🚀 Calling createPrediction with args:", {
@@ -197,7 +197,7 @@ export function useContract() {
         metadataURI: "",
         initialLiquidityWei: params.initialLiquidity
       });
-      
+
       const hash = await walletClient.writeContract({
         address: PREDICTION_FACTORY_ADDRESS as `0x${string}`,
         abi: PREDICTION_FACTORY_ABI,
@@ -210,7 +210,7 @@ export function useContract() {
             expo: -8
           },
           params.endTime,
-          "qwertyuiop", 
+          "qwertyuiop",
           params.initialLiquidity
         ],
         account: wallet.address as `0x${string}`,
@@ -250,11 +250,11 @@ export function useContract() {
       const yesTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: yesTokenHash });
       console.log("Yes token receipt:", yesTokenReceipt);
       const yesTokenAddress = yesTokenReceipt.logs[0].address;
-      
+
       if (!yesTokenAddress) {
         throw new Error("Failed to get yes token contract address from transaction receipt");
       }
-      
+
       console.log("✅ Yes token deployed at:", yesTokenAddress);
 
       const noTokenHash = await walletClient.writeContract({
@@ -267,11 +267,11 @@ export function useContract() {
       const noTokenReceipt = await publicClient.waitForTransactionReceipt({ hash: noTokenHash });
       console.log("No token receipt:", noTokenReceipt);
       const noTokenAddress = noTokenReceipt.logs[0].address;
-      
+
       if (!noTokenAddress) {
         throw new Error("Failed to get no token contract address from transaction receipt");
       }
-      
+
       console.log("✅ No token deployed at:", noTokenAddress);
 
       //initialize market
@@ -293,7 +293,7 @@ export function useContract() {
         predictionContractAddress: PredictionContractAddress,
         approveAmount: approveAmount.toString()
       });
-      
+
       const approveYesTokenHash = await walletClient.writeContract({
         address: yesTokenAddress as `0x${string}`,
         abi: ERC20_ABI,
@@ -310,7 +310,7 @@ export function useContract() {
         predictionContractAddress: PredictionContractAddress,
         approveAmount: approveAmount.toString()
       });
-      
+
       const approveNoTokenHash = await walletClient.writeContract({
         address: noTokenAddress as `0x${string}`,
         abi: ERC20_ABI,
@@ -362,16 +362,16 @@ export function useContract() {
       });
       console.log("Allowance:", allowance);
       if (allowance < amountWei) {
-      const approveHash = await walletClient.writeContract({
-        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: "approve",
-        args: [params.predictionAddress as `0x${string}`, amountWei],
-        account: wallet.address as `0x${string}`,
-      });
-      const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
-      console.log("Approve transaction hash:", approveHash);
-     }
+        const approveHash = await walletClient.writeContract({
+          address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [params.predictionAddress as `0x${string}`, amountWei],
+          account: wallet.address as `0x${string}`,
+        });
+        const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        console.log("Approve transaction hash:", approveHash);
+      }
 
 
       // Then place the bet
@@ -504,6 +504,7 @@ export function useContract() {
       throw new Error(errorMsg);
     }
   }
+
   return {
     createPrediction,
     placeBet,
