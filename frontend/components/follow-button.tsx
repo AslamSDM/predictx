@@ -39,7 +39,7 @@ export default function FollowButton({
   useEffect(() => {
     const checkFollowStatus = async () => {
       if (!user?.id) return;
-      
+
       setIsCheckingFollow(true);
       try {
         const data = await followApi.getFollowData(targetUserId, user.id);
@@ -86,7 +86,11 @@ export default function FollowButton({
           variant === "compact" ? "text-xs" : "text-sm"
         }`}
       >
-        <Loader2 className={`${variant === "compact" ? "w-3 h-3" : "w-4 h-4"} animate-spin`} />
+        <Loader2
+          className={`${
+            variant === "compact" ? "w-3 h-3" : "w-4 h-4"
+          } animate-spin`}
+        />
         {variant === "default" && "Loading..."}
       </button>
     );
@@ -106,19 +110,28 @@ export default function FollowButton({
     >
       {isLoading ? (
         <>
-          <Loader2 className={`${variant === "compact" ? "w-3 h-3" : "w-4 h-4"} animate-spin`} />
-          {variant === "default" && (isFollowing ? "Unfollowing..." : "Following...")}
+          <Loader2
+            className={`${
+              variant === "compact" ? "w-3 h-3" : "w-4 h-4"
+            } animate-spin`}
+          />
+          {variant === "default" &&
+            (isFollowing ? "Unfollowing..." : "Following...")}
         </>
       ) : (
         <>
           {isFollowing ? (
             <>
-              <UserMinus className={`${variant === "compact" ? "w-3 h-3" : "w-4 h-4"}`} />
+              <UserMinus
+                className={`${variant === "compact" ? "w-3 h-3" : "w-4 h-4"}`}
+              />
               {variant === "default" && "Unfollow"}
             </>
           ) : (
             <>
-              <UserPlus className={`${variant === "compact" ? "w-3 h-3" : "w-4 h-4"}`} />
+              <UserPlus
+                className={`${variant === "compact" ? "w-3 h-3" : "w-4 h-4"}`}
+              />
               {variant === "default" && "Follow"}
             </>
           )}

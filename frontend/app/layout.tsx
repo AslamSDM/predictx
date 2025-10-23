@@ -6,6 +6,7 @@ import { Orbitron } from "next/font/google";
 import { Suspense } from "react";
 import InstallBanner from "@/components/install-banner";
 import BackgroundLoader from "@/components/background-loader";
+import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "./Provider";
 import SiteNav from "@/components/site-nav";
@@ -74,6 +75,13 @@ export default function RootLayout({
             <SiteNav />
             {children}
           </Suspense>
+          <Toaster
+            position="top-right"
+            expand={true}
+            richColors
+            closeButton
+            theme="dark"
+          />
         </Providers>
         <InstallBanner />
       </body>

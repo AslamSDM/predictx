@@ -35,7 +35,9 @@ export default function UserProfilePage() {
   const address = params.address as string;
 
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<"predictions" | "bets">("predictions");
+  const [activeTab, setActiveTab] = useState<"predictions" | "bets">(
+    "predictions"
+  );
   const [predictions, setPredictions] = useState<PredictionWithRelations[]>([]);
   const [bets, setBets] = useState<BetWithRelations[]>([]);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -45,23 +47,25 @@ export default function UserProfilePage() {
     followingCount: 0,
     isFollowing: false,
   });
-  const [showFollowModal, setShowFollowModal] = useState<"followers" | "following" | null>(null);
+  const [showFollowModal, setShowFollowModal] = useState<
+    "followers" | "following" | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch user by wallet address
   useEffect(() => {
     const fetchUser = async () => {
       if (!address) return;
-      
+
       setIsLoadingUser(true);
       setError(null);
       try {
         const userData = await userApi.getByWallet(address);
         setUser(userData);
-        
+
         // Background load predictions and bets
         loadUserData(userData.id);
-        
+
         // Load follow data
         const followDataResponse = await followApi.getFollowData(
           userData.id,
@@ -129,7 +133,8 @@ export default function UserProfilePage() {
   };
 
   const formatAmount = (amount: number | { toString: () => string }) => {
-    const num = typeof amount === "number" ? amount : parseFloat(amount.toString());
+    const num =
+      typeof amount === "number" ? amount : parseFloat(amount.toString());
     return num.toLocaleString();
   };
 
@@ -201,7 +206,9 @@ export default function UserProfilePage() {
             )}
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold">{user.username || "Anonymous"}</h1>
+                <h1 className="text-3xl font-bold">
+                  {user.username || "Anonymous"}
+                </h1>
                 {!isOwnProfile && (
                   <FollowButton
                     targetUserId={user.id}
@@ -211,20 +218,25 @@ export default function UserProfilePage() {
                 )}
               </div>
               <p className="text-sm font-mono text-muted-foreground mb-4">
-                {user.walletAddress.slice(0, 10)}...{user.walletAddress.slice(-8)}
+                {user.walletAddress.slice(0, 10)}...
+                {user.walletAddress.slice(-8)}
               </p>
               <div className="flex gap-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
                     {isLoadingData ? "-" : predictions.length}
                   </div>
-                  <div className="text-xs text-muted-foreground">Predictions</div>
+                  <div className="text-xs text-muted-foreground">
+                    Predictions
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
                     {isLoadingData ? "-" : bets.length}
                   </div>
-                  <div className="text-xs text-muted-foreground">Bets Placed</div>
+                  <div className="text-xs text-muted-foreground">
+                    Bets Placed
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowFollowModal("followers")}
@@ -266,7 +278,9 @@ export default function UserProfilePage() {
                           )
                         )}
                   </div>
-                  <div className="text-xs text-muted-foreground">Total Wagered</div>
+                  <div className="text-xs text-muted-foreground">
+                    Total Wagered
+                  </div>
                 </div>
               </div>
             </div>
@@ -362,14 +376,18 @@ export default function UserProfilePage() {
                           {prediction.status}
                         </span>
                       </div>
-                      <h3 className="text-lg font-bold mb-2">{prediction.title}</h3>
+                      <h3 className="text-lg font-bold mb-2">
+                        {prediction.title}
+                      </h3>
                       <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                         {prediction.description}
                       </p>
                       <div className="flex items-center gap-4 text-xs">
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-3 h-3" />
-                          <span>Pool: ${formatAmount(prediction.totalPool)}</span>
+                          <span>
+                            Pool: ${formatAmount(prediction.totalPool)}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Trophy className="w-3 h-3" />
