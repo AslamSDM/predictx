@@ -80,8 +80,6 @@ export default function ResolvePage() {
       // Use current timestamp if not provided      
       const hermesUrl = current ? `https://hermes.pyth.network/v2/updates/price/latest?ids%5B%5D=${feedId}&encoding=hex&parsed=true` : `https://hermes.pyth.network/v2/updates/price/${timestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
 
-      console.log("🔍 Fetching price from Hermes API:", hermesUrl);
-
       const response = await fetch(hermesUrl, {
         method: "GET",
         headers: {
@@ -96,11 +94,8 @@ export default function ResolvePage() {
       }
 
       const data: PythPriceFeed = await response.json();
-      console.log("📊 Hermes API response:", data);
-
       return data;
     } catch (error) {
-      console.error("❌ Error fetching price from Hermes:", error);
       throw error;
     }
   };
@@ -126,7 +121,6 @@ export default function ResolvePage() {
     try {
       // Step 1: Get the symbol from the prediction
       const symbol = prediction.symbol;
-      console.log("📈 Resolving prediction for symbol:", symbol);
 
       // Step 2: Get the Pyth price feed ID for this symbol
       const feedId = getPythFeedId(symbol);
@@ -137,18 +131,13 @@ export default function ResolvePage() {
         );
       }
 
-      console.log("🔗 Using Pyth feed ID:", feedId);
-
       // Step 3: Fetch price data from Hermes API
-      console.log("prediction.createdAt", prediction.createdAt);
-      console.log("prediction.expiresAt", prediction.expiresAt);
       const [high, low] = await getHighAndLow({
         asset: symbol.replace("USD", ""),
         interval: "1m", 
         startTime: new Date(new Date(prediction.createdAt).getTime() + 70000).getTime(),
         endTime: new Date(new Date(prediction.expiresAt).getTime() - 70000).getTime()
       });
-      console.log("🔍 High and low prices:", high, low);
 
       let highPriceData: PythPriceFeed | null;
       let lowPriceData: PythPriceFeed | null;
@@ -163,13 +152,7 @@ export default function ResolvePage() {
         const highPrice = extractPriceValue(highPriceData);
         const lowPrice = extractPriceValue(lowPriceData);
         const currentPrice = extractPriceValue(currentPriceData);
-        
-        console.log("✅ Successfully fetched price data:");
-        console.log("📈 High price:", highPrice);
-        console.log("📉 Low price:", lowPrice);
-        console.log("💰 Current price:", currentPrice);
       } catch (hermesError) {
-        console.error("❌ Failed to fetch price from Hermes:", hermesError);
         // Continue with resolution even if price fetch fails
         // The backend can handle price verification separately
         highPriceData = null;
@@ -189,7 +172,6 @@ export default function ResolvePage() {
       }
 
       // Step 4: Call resolvePrediction which approves tokens and calls backend to resolve on-chain
-      console.log("🔐 Calling resolvePrediction (approval + backend resolution)...");
       const outcome = await resolvePrediction({
         predictionAddress: prediction.address,
         highPriceData: highPriceData?.binary.data[0] ? `0x${highPriceData.binary.data[0]}` : null,
@@ -197,10 +179,7 @@ export default function ResolvePage() {
         currentPriceData: currentPriceData?.binary.data[0] ? `0x${currentPriceData.binary.data[0]}` : null
       });
 
-      console.log("✅ On-chain resolution complete! Outcome:", outcome);
-
       // Step 5: Update database with resolved outcome
-      console.log("📝 Updating database with outcome...");
       const res = await fetch(`/api/predictions/${prediction.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -211,8 +190,7 @@ export default function ResolvePage() {
       });
 
       if (res.ok) {
-        const resolved = await res.json();
-        console.log("✅ Prediction resolved:", resolved);
+        await res.json();
 
         // Remove from list
         setPredictions((prev) => prev.filter((p) => p.id !== prediction.id));

@@ -53,8 +53,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("🔐 Creating wallet client from private key...");
-    
     // Create account from private key
     const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
     
@@ -74,22 +72,13 @@ export async function POST(request: NextRequest) {
       transport: http(rpcUrl),
     });
 
-    console.log("📋 Resolver wallet address:", account.address);
-    
     // Check account balance
     const balance = await publicClient.getBalance({ address: account.address });
-    console.log("💰 Account balance:", formatEther(balance), "ETH");
 
     // Validate that we have at least current price data
     const highPriceDataArray = (highPriceData && typeof highPriceData === 'string' && highPriceData.startsWith('0x')) ? [highPriceData] : [];
     const lowPriceDataArray = (lowPriceData && typeof lowPriceData === 'string' && lowPriceData.startsWith('0x')) ? [lowPriceData] : [];
     const currentPriceDataArray = (currentPriceData && typeof currentPriceData === 'string' && currentPriceData.startsWith('0x')) ? [currentPriceData] : [];
-
-    console.log("📊 Price data arrays:", {
-      highPriceDataArray,
-      lowPriceDataArray,
-      currentPriceDataArray,
-    });
 
     // Additional validation
     if (currentPriceDataArray.length === 0) {
@@ -106,8 +95,6 @@ export async function POST(request: NextRequest) {
       currentPriceDataArray
     ];
 
-    console.log("💰 Calculating Pyth fees...");
-    
     // Calculate fees for each price update
     let totalFees = BigInt(0);
     
@@ -119,7 +106,6 @@ export async function POST(request: NextRequest) {
           functionName: "getUpdateFee",
           args: [highPriceDataArray]
         }) as bigint;
-        console.log("High price fee:", formatEther(highFees), "ETH");
         totalFees += highFees;
       }
 
@@ -130,7 +116,6 @@ export async function POST(request: NextRequest) {
           functionName: "getUpdateFee",
           args: [lowPriceDataArray]
         }) as bigint;
-        console.log("Low price fee:", formatEther(lowFees), "ETH");
         totalFees += lowFees;
       }
 
@@ -141,11 +126,9 @@ export async function POST(request: NextRequest) {
           functionName: "getUpdateFee",
           args: [currentPriceDataArray]
         }) as bigint;
-        console.log("Current price fee:", formatEther(currentFees), "ETH");
         totalFees += currentFees;
       }
     } catch (feeError: any) {
-      console.error("❌ Error calculating Pyth fees:", feeError);
       return NextResponse.json(
         { error: "Failed to calculate Pyth fees", details: feeError.message },
         { status: 500 }
@@ -154,8 +137,6 @@ export async function POST(request: NextRequest) {
     
     // Add a small buffer to the fees
     const feeWithBump = totalFees + parseEther("0.000001");
-    console.log("Total fees:", formatEther(totalFees), "ETH");
-    console.log("Sending with buffer:", formatEther(feeWithBump), "ETH");
     
     // Check if we have enough ETH
     if (balance < feeWithBump) {
@@ -168,15 +149,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("📞 Calling report function on contract:", predictionAddress);
-    console.log("📋 Contract call parameters:", {
-      address: predictionAddress,
-      functionName: "report",
-      args: contractArgs,
-      account: account.address,
-      value: formatEther(feeWithBump) + " ETH"
-    });
-
     // First simulate the call to check for errors
     try {
       await publicClient.simulateContract({
@@ -187,9 +159,7 @@ export async function POST(request: NextRequest) {
         value: feeWithBump,
         account: account.address,
       });
-      console.log("✅ Simulation successful - no issues detected");
     } catch (simError: any) {
-      console.error("❌ Simulation failed:", simError);
       return NextResponse.json(
         { 
           error: "Contract simulation failed", 
@@ -209,19 +179,13 @@ export async function POST(request: NextRequest) {
       value: feeWithBump,
     });
 
-    console.log("✅ Report transaction hash:", reportHash);
-
     // Wait for the transaction to be mined
-    const reportReceipt = await publicClient.waitForTransactionReceipt({ 
+    await publicClient.waitForTransactionReceipt({ 
       hash: reportHash,
       timeout: 60_000, // 60 seconds timeout
     });
 
-    console.log("✅ Report transaction receipt:", reportReceipt);
-
     // Now read the outcome from the contract
-    console.log("📖 Reading outcome from contract...");
-    
     let outcome: number;
     try {
       const outcomeResult = await publicClient.readContract({
@@ -231,9 +195,7 @@ export async function POST(request: NextRequest) {
       });
 
       outcome = Number(outcomeResult);
-      console.log("✅ Outcome resolved on-chain:", outcome);
     } catch (readError) {
-      console.error("❌ Error reading outcome:", readError);
       // If we can't read the outcome immediately, it might not be resolved yet
       // Return error to indicate resolution failed
       return NextResponse.json(
@@ -251,7 +213,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("❌ Error resolving prediction on-chain:", error);
     return NextResponse.json(
       { 
         error: "Failed to resolve prediction on-chain", 

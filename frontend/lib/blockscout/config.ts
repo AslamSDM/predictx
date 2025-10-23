@@ -96,6 +96,7 @@ export enum TransactionType {
   APPROVE = "approve",
   INITIALIZE_MARKET = "initialize_market",
   CLAIM_WINNINGS = "claim_winnings",
+  MARKET_INITIALIZATION = "market_initialization",
 }
 
 /**
@@ -108,4 +109,5 @@ export const TX_TYPE_LABELS: Record<TransactionType, string> = {
   [TransactionType.APPROVE]: "Token Approval",
   [TransactionType.INITIALIZE_MARKET]: "Initialize Market",
   [TransactionType.CLAIM_WINNINGS]: "Claim Winnings",
+  [TransactionType.MARKET_INITIALIZATION]: "Market Initialization",
 };
