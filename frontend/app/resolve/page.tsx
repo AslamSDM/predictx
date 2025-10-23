@@ -188,24 +188,25 @@ export default function ResolvePage() {
         throw new Error("Failed to fetch low price data from Pyth");
       }
 
-      const [resolveP1Hash, resolveP2Hash, resolveP3Hash] = await resolvePrediction({
+      // Step 4: Call resolvePrediction which approves tokens and calls backend to resolve on-chain
+      console.log("🔐 Calling resolvePrediction (approval + backend resolution)...");
+      const outcome = await resolvePrediction({
         predictionAddress: prediction.address,
-        highPriceData: highPriceData?.binary.data[0] ? `0x${highPriceData.binary.data[0]}` : undefined,
-        lowPriceData: lowPriceData?.binary.data[0] ? `0x${lowPriceData.binary.data[0]}` : undefined,
-        currentPriceData: currentPriceData?.binary.data[0] ? `0x${currentPriceData.binary.data[0]}` : undefined
+        highPriceData: highPriceData?.binary.data[0] ? `0x${highPriceData.binary.data[0]}` : null,
+        lowPriceData: lowPriceData?.binary.data[0] ? `0x${lowPriceData.binary.data[0]}` : null,
+        currentPriceData: currentPriceData?.binary.data[0] ? `0x${currentPriceData.binary.data[0]}` : null
       });
 
-      // Step 4: Send resolution request to backend with price data
+      console.log("✅ On-chain resolution complete! Outcome:", outcome);
+
+      // Step 5: Update database with resolved outcome
+      console.log("📝 Updating database with outcome...");
       const res = await fetch(`/api/predictions/${prediction.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           resolvedBy: user.id,
-          symbol,
-          feedId,
-          highPriceData: highPriceData ? JSON.stringify(highPriceData) : null,
-          lowPriceData: lowPriceData ? JSON.stringify(lowPriceData) : null,
-          currentPriceData: currentPriceData ? JSON.stringify(currentPriceData) : null,
+          outcome: outcome == 1 ? "NO" : "YES", // outcome: 0 = YES, 1 = NO
         }),
       });
 

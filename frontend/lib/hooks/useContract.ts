@@ -342,7 +342,7 @@ const getEndsAndStartTimes = async (predictionAddress: string) => {
     highPriceData: string | null;
     lowPriceData: string | null;
     currentPriceData: string | null;
-  }): Promise<string> => {
+  }): Promise<number> => {
     const wallet = getWallet();
 
     setIsLoading(true);
@@ -350,90 +350,74 @@ const getEndsAndStartTimes = async (predictionAddress: string) => {
 
     try {
       const provider = await wallet.getEthereumProvider();
-
       const walletClient = getWalletClient(provider);
       const publicClient = getPublicClient(provider);
 
-      const endTime=await publicClient.readContract({
-        address: params.predictionAddress as `0x${string}`,
-        abi: PREDICTION_ABI,
-        functionName: "endTime",
-        args: [],
-      })
+      console.log("🔐 Starting resolution process...");
+      console.log("📋 Prediction address:", params.predictionAddress);
 
-      console.log("END TIME --------> ", endTime)
-      console.log("Price data params:", {
-        highPriceData: params.highPriceData,
-        lowPriceData: params.lowPriceData,
-        currentPriceData: params.currentPriceData
+      // Step 1: Approve stake tokens (any amount)
+      console.log("✅ Step 1: Approving stake tokens...");
+      const approveAmount = parseEther("1000"); // Approve 1000 tokens
+
+      const allowance = await publicClient.readContract({
+        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [wallet.address as `0x${string}`, params.predictionAddress as `0x${string}`],
       });
 
-      // Validate that we have at least current price data
-      if (!params.currentPriceData) {
-        throw new Error("Current price data is required for resolution");
-      }
+      console.log("Current allowance:", allowance);
 
-      // Ensure all price data is valid hex strings and not null/undefined
-      const highPriceDataArray = (params.highPriceData && typeof params.highPriceData === 'string' && params.highPriceData.startsWith('0x')) ? [params.highPriceData] : [];
-      const lowPriceDataArray = (params.lowPriceData && typeof params.lowPriceData === 'string' && params.lowPriceData.startsWith('0x')) ? [params.lowPriceData] : [];
-      const currentPriceDataArray = (params.currentPriceData && typeof params.currentPriceData === 'string' && params.currentPriceData.startsWith('0x')) ? [params.currentPriceData] : [];
-
-      console.log("Final price data arrays:", {
-        highPriceDataArray,
-        lowPriceDataArray,
-        currentPriceDataArray,
-        highPriceDataLength: highPriceDataArray.length,
-        lowPriceDataLength: lowPriceDataArray.length,
-        currentPriceDataLength: currentPriceDataArray.length
-      });
-
-      // Additional validation to ensure arrays are properly formatted
-      if (currentPriceDataArray.length === 0) {
-        throw new Error("Current price data is required and must be a valid hex string");
-      }
-
-      // Validate all parameters before making the contract call
-      const contractArgs = [
-        highPriceDataArray,
-        lowPriceDataArray,
-        currentPriceDataArray
-      ];
-
-      console.log("Contract call parameters:", {
-        address: params.predictionAddress,
-        functionName: "report",
-        args: contractArgs,
-        account: wallet.address,
-        value: "0.0001 ETH"
-      });
-
-      // Ensure all args are properly formatted
-      contractArgs.forEach((arg, index) => {
-        if (!Array.isArray(arg)) {
-          throw new Error(`Argument ${index} is not an array: ${typeof arg}`);
-        }
-        arg.forEach((item, itemIndex) => {
-          if (typeof item !== 'string' || !item.startsWith('0x')) {
-            throw new Error(`Item ${itemIndex} in argument ${index} is not a valid hex string: ${item}`);
-          }
+      if (allowance < parseEther("1")) {
+        const approveHash = await walletClient.writeContract({
+          address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [params.predictionAddress as `0x${string}`, approveAmount],
+          account: wallet.address as `0x${string}`,
         });
+
+        console.log("Approve transaction hash:", approveHash);
+        
+        // Wait for approval transaction to complete
+        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        console.log("✅ Approval transaction completed");
+      } else {
+        console.log("✅ Sufficient allowance already exists");
+      }
+
+      // Step 2: Call backend API to resolve on-chain
+      console.log("✅ Step 2: Calling backend to resolve on-chain...");
+      
+      const resolveResponse = await fetch('/api/predictions/resolve-onchain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          predictionAddress: params.predictionAddress,
+          highPriceData: params.highPriceData,
+          lowPriceData: params.lowPriceData,
+          currentPriceData: params.currentPriceData,
+        }),
       });
 
-      const resolveP1Hash = await walletClient.writeContract({
-        address: params.predictionAddress as `0x${string}`,
-        abi: PREDICTION_ABI,
-        functionName: "report",
-        args: contractArgs,
-        account: wallet.address as `0x${string}`,
-        value: 100000000000000n // Use BigInt literal instead of BigInt() constructor
-      });
-      const resolveP1Receipt = await publicClient.waitForTransactionReceipt({ hash: resolveP1Hash });
-      console.log("Resolve transaction hash:", resolveP1Hash);
+      if (!resolveResponse.ok) {
+        const errorData = await resolveResponse.json();
+        throw new Error(errorData.error || errorData.details || 'Failed to resolve on-chain');
+      }
+
+      const resolveData = await resolveResponse.json();
+      console.log("✅ Backend response:", resolveData);
+
+      const outcome = resolveData.outcome;
+      console.log("✅ Resolution complete! Outcome:", outcome);
 
       setIsLoading(false);
-      return resolveP1Hash;
+      return outcome;
     } catch (err: any) {
-      const errorMsg = err.message || "Failed to place bet";
+      const errorMsg = err.message || "Failed to resolve prediction";
       setError(errorMsg);
       setIsLoading(false);
       throw new Error(errorMsg);
