@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/icons/logo.ico", type: "image/x-icon" },
-      { url: "/icons/icon-192x192.png", type: "image/png", sizes: "192x192" },
+      { url: "/app-icon.svg", type: "image/svg+xml", sizes: "any" }
     ],
-    apple: "/icons/icon-192x192.png",
+    apple: "/app-icon.svg",
     shortcut: "/icons/logo.ico",
   },
   appleWebApp: {
@@ -72,7 +72,8 @@ export default function RootLayout({
         <link rel="icon" href="/icons/logo.ico" type="image/x-icon" />
         <link rel="shortcut icon" href="/icons/logo.ico" type="image/x-icon" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/app-icon.svg" />
+        <link rel="apple-touch-icon-precomposed" href="/app-icon.svg" />
       </head>
       <body className="font-sans">
         <Providers>

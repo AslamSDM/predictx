@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Download, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import WalletConnect from "./wallet-connect";
 import UserProfileDropdown from "./user-profile-dropdown";
@@ -11,12 +11,14 @@ import LogoIcon from "./logo-icon";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useEffect } from "react";
 import { useCreateWallet, useWallets } from "@privy-io/react-auth";
+import { usePWAInstallPrompt } from "@/lib/hooks/use-pwa";
 import Image from "next/image";
 
 export default function SiteNav() {
   const pathname = usePathname();
   const { ready, authenticated } = useAuth();
   const { createWallet } = useCreateWallet();
+  const { installPrompt, isInstalled, promptInstall } = usePWAInstallPrompt();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -44,6 +46,39 @@ export default function SiteNav() {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+
+  const handleMobileInstall = async () => {
+    // Check if it's iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (installPrompt) {
+      // Android/Chrome - use native install prompt
+      const success = await promptInstall();
+      if (success) {
+        setIsMobileMenuOpen(false);
+      }
+    } else if (isIOS) {
+      // iOS - show manual installation instructions
+      alert(
+        "To install this app on your iPhone/iPad:\n\n" +
+        "1. Tap the Share button at the bottom of the screen\n" +
+        '2. Scroll down and tap "Add to Home Screen"\n' +
+        '3. Tap "Add" in the top right corner'
+      );
+      setIsMobileMenuOpen(false);
+    } else {
+      // Other browsers - show general instructions
+      alert(
+        "To install this app:\n\n" +
+        "• Look for an install icon in your browser's address bar\n" +
+        "• Or check your browser's menu for 'Install app' or 'Add to home screen'"
+      );
+      setIsMobileMenuOpen(false);
+    }
+  };
+
+  // Show install button if not already installed
+  const showInstallButton = !isInstalled;
 
   return (
     <>
@@ -108,6 +143,17 @@ export default function SiteNav() {
               {link("/discover", "Discover", true)}
               {link("/create", "Create", true)}
               {link("/resolve", "Resolve", true)}
+
+              {/* Install App Button */}
+              {showInstallButton && (
+                <button
+                  onClick={handleMobileInstall}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-left bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Install App</span>
+                </button>
+              )}
 
               {/* Mobile Auth */}
               <div className="pt-4 border-t border-border">

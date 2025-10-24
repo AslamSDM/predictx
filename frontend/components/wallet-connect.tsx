@@ -49,11 +49,7 @@ export default function WalletConnect() {
                     {user.email.address}
                   </span>
                 )}
-                {user.telegram?.username && (
-                  <span className="text-xs text-muted-foreground">
-                    @{user.telegram.username}
-                  </span>
-                )}
+
                 {address && (
                   <span className="text-xs font-mono text-foreground">
                     {formatAddress(address)}
@@ -68,10 +64,6 @@ export default function WalletConnect() {
               {user.email?.address ? (
                 <span className="text-xs text-muted-foreground truncate max-w-[120px]">
                   {user.email.address.split("@")[0]}
-                </span>
-              ) : user.telegram?.username ? (
-                <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                  @{user.telegram.username}
                 </span>
               ) : address ? (
                 <span className="text-xs font-mono text-foreground">
@@ -93,14 +85,7 @@ export default function WalletConnect() {
             </button>
           </>
         ) : (
-          <button
-            onClick={() => setShowLoginModal(true)}
-            className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2 glow font-medium"
-            aria-label="Login with Email or Telegram"
-          >
-            <Mail className="w-4 h-4" />
-            <span>Login</span>
-          </button>
+          <></>
         )}
       </div>
 
