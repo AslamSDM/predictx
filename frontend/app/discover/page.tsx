@@ -221,7 +221,7 @@ export default function DiscoverPage() {
 
   return (
     <main className="min-h-screen bg-background overflow-hidden">
-      <section className="mx-auto max-w-2xl px-4 py-4 md:py-6 h-[calc(100vh-4rem)] flex flex-col">
+      <section className="mx-auto max-w-2xl px-4 py-4 md:py-6 h-[calc(100vh-4rem)] flex flex-col mb-10">
         <div className="mb-4 text-center flex-shrink-0">
           <h1 className="font-serif text-2xl md:text-3xl mb-2">
             Discover Markets
@@ -230,28 +230,6 @@ export default function DiscoverPage() {
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 text-sm text-foreground/70">
             <p className="md:hidden">Swipe to interact</p>
             <p className="hidden md:block">Use buttons below or arrow keys</p>
-          </div>
-          <div className="mt-2 flex items-center justify-center gap-2">
-            <div className="text-xs text-muted-foreground">
-              {currentIndex + 1} / {predictions.length}
-              {hasMore && "+"}
-            </div>
-            {isLoading && predictions.length > 0 && (
-              <Loader2 className="w-3 h-3 animate-spin text-primary" />
-            )}
-          </div>
-
-          {/* Progress bar */}
-          <div className="mt-2 w-full max-w-xs mx-auto h-1 bg-border rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{
-                width: `${Math.min(
-                  ((currentIndex + 1) / Math.max(predictions.length, 1)) * 100,
-                  100
-                )}%`,
-              }}
-            />
           </div>
         </div>
 
