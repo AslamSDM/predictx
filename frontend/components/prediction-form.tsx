@@ -6,7 +6,13 @@ import { useContract } from "@/lib/hooks/useContract";
 import { useUserStore, usePredictionsStore } from "@/lib/store";
 import { predictionApi, uploadApi } from "@/lib/api";
 import type { TradeDirection } from "@/lib/types";
-import { Loader2, Clock, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Loader2,
+  Clock,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 export default function PredictionForm() {
   const [title, setTitle] = useState("");
@@ -15,6 +21,7 @@ export default function PredictionForm() {
   const [targetPrice, setTargetPrice] = useState("");
   const [initialLiquidity, setInitialLiquidity] = useState<number>(0);
   const [file, setFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>("");
   const [deadline, setDeadline] = useState("");
   const [direction, setDirection] = useState<TradeDirection>("LONG");
   const [preview, setPreview] = useState<string | null>(null);
@@ -37,12 +44,15 @@ export default function PredictionForm() {
   };
 
   // Date/Time picker helper functions
-  const formatDateTime = (date: Date, time: { hours: number; minutes: number }) => {
+  const formatDateTime = (
+    date: Date,
+    time: { hours: number; minutes: number }
+  ) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(time.hours).padStart(2, '0');
-    const minutes = String(time.minutes).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(time.hours).padStart(2, "0");
+    const minutes = String(time.minutes).padStart(2, "0");
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
@@ -57,34 +67,39 @@ export default function PredictionForm() {
   const isDateDisabled = (date: Date) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const selectedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
+    const selectedDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
     // Disable dates before today
     return selectedDate < today;
   };
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    
+
     // If today is selected, set default time to 1 hour from now
     const today = new Date();
-    const isToday = date.getDate() === today.getDate() && 
-      date.getMonth() === today.getMonth() && 
+    const isToday =
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear();
-    
+
     if (isToday) {
       const oneHourFromNow = new Date(today.getTime() + 60 * 60 * 1000);
       setSelectedTime({
         hours: oneHourFromNow.getHours(),
-        minutes: oneHourFromNow.getMinutes()
+        minutes: oneHourFromNow.getMinutes(),
       });
     }
   };
 
-  const handleTimeChange = (type: 'hours' | 'minutes', value: number) => {
-    setSelectedTime(prev => ({
+  const handleTimeChange = (type: "hours" | "minutes", value: number) => {
+    setSelectedTime((prev) => ({
       ...prev,
-      [type]: value
+      [type]: value,
     }));
   };
 
@@ -96,10 +111,10 @@ export default function PredictionForm() {
     }
   };
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentMonth(prev => {
+  const navigateMonth = (direction: "prev" | "next") => {
+    setCurrentMonth((prev) => {
       const newMonth = new Date(prev);
-      if (direction === 'prev') {
+      if (direction === "prev") {
         newMonth.setMonth(prev.getMonth() - 1);
       } else {
         newMonth.setMonth(prev.getMonth() + 1);
@@ -108,7 +123,7 @@ export default function PredictionForm() {
     });
   };
 
-  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
 
     // Validate file
@@ -136,6 +151,26 @@ export default function PredictionForm() {
       const reader = new FileReader();
       reader.onload = () => setPreview(reader.result as string);
       reader.readAsDataURL(f);
+
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", f);
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+          setImageUrl(data.url);
+        } else {
+          setError(data.message);
+        }
+      } catch (error) {
+        setError("Upload failed");
+      } finally {
+        setIsUploading(false);
+      }
     } else {
       setFile(null);
       setPreview(null);
@@ -155,7 +190,6 @@ export default function PredictionForm() {
     const now = new Date();
     const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
 
-
     // Validate target price
     const targetPriceAmount = parseFloat(targetPrice);
     if (isNaN(targetPriceAmount) || targetPriceAmount <= 0) {
@@ -174,35 +208,7 @@ export default function PredictionForm() {
     setError(null);
 
     try {
-      // 1. Upload image/video if present
-      let imageUrl = "";
-      let uploadedFileKey = "";
-
-      if (file) {
-        setIsUploading(true);
-        try {
-          const uploadResult = await uploadApi.uploadImage(file);
-
-          if (!uploadResult.success) {
-            throw new Error("Upload failed");
-          }
-
-          imageUrl = uploadResult.url;
-          uploadedFileKey = uploadResult.key;
-
-          console.log("File uploaded successfully:", {
-            url: imageUrl,
-            key: uploadedFileKey,
-            size: uploadResult.size,
-            type: uploadResult.fileType,
-          });
-        } catch (uploadError: any) {
-          console.error("Upload error:", uploadError);
-          throw new Error(`Failed to upload file: ${uploadError.message}`);
-        } finally {
-          setIsUploading(false);
-        }
-      }
+      // 1. Upload image/video if present - already handled by onFile
 
       // 2. Create prediction on blockchain
       // Convert symbol to uppercase for contract (e.g., "BTCUSD", "ETHUSD")
@@ -214,22 +220,30 @@ export default function PredictionForm() {
       console.log("Initial liquidity:", initialLiquidity);
       console.log("Target price:", targetPriceAmount);
       console.log("End time:", endTime);
-      console.log("Metadata URI:", JSON.stringify({ title, description, imageUrl }));
+      console.log(
+        "Metadata URI:",
+        JSON.stringify({ title, description, imageUrl })
+      );
       console.log("Initial liquidity:", initialLiquidity);
       console.log("Target price:", targetPriceAmount);
       console.log("End time:", endTime);
-      console.log("Metadata URI:", JSON.stringify({ title, description, imageUrl }));
+      console.log(
+        "Metadata URI:",
+        JSON.stringify({ title, description, imageUrl })
+      );
       console.log("Initial liquidity:", initialLiquidity);
       const contractAddresses = await createPrediction({
         pairName,
         direction,
-        targetPrice: BigInt(Math.floor(targetPriceAmount * 100000000)).toString(),
-        endTime:    BigInt(Math.floor(endTime.getTime() / 1000)).toString(),
+        targetPrice: BigInt(
+          Math.floor(targetPriceAmount * 100000000)
+        ).toString(),
+        endTime: BigInt(Math.floor(endTime.getTime() / 1000)).toString(),
         metadataURI: JSON.stringify({ title, description, imageUrl }),
-        initialLiquidity: BigInt(Math.floor(initialLiquidity * 1000000)).toString(),
-      })
-
-
+        initialLiquidity: BigInt(
+          Math.floor(initialLiquidity * 1000000)
+        ).toString(),
+      });
 
       // 3. Create prediction in database
       const prediction = await predictionApi.create({
@@ -396,7 +410,10 @@ export default function PredictionForm() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-sm text-foreground/80" htmlFor="initialLiquidity">
+          <label
+            className="text-sm text-foreground/80"
+            htmlFor="initialLiquidity"
+          >
             Initial Liquidity (PYUSD) *
           </label>
           <input
@@ -425,7 +442,7 @@ export default function PredictionForm() {
               id="deadline"
               type="text"
               className="w-full rounded-md bg-background border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary pr-10 cursor-pointer"
-              value={deadline ? new Date(deadline).toLocaleString() : ''}
+              value={deadline ? new Date(deadline).toLocaleString() : ""}
               onClick={() => setShowDateTimePicker(true)}
               placeholder="Click to select date and time"
               required
@@ -439,9 +456,11 @@ export default function PredictionForm() {
           <div className="text-xs text-foreground/60">
             When this prediction expires (minimum 1 hour from now)
             <br />
-            <span className="text-primary">Earliest: {getMinimumTime().replace('T', ' ')}</span>
+            <span className="text-primary">
+              Earliest: {getMinimumTime().replace("T", " ")}
+            </span>
           </div>
-          
+
           {/* Quick time presets */}
           <div className="flex flex-wrap gap-2 mt-2">
             <button
@@ -551,9 +570,10 @@ export default function PredictionForm() {
       </div>
 
       <div className="text-xs text-yellow-500/80 bg-yellow-500/10 border border-yellow-500/30 rounded-md p-3">
-        💡 <strong>Smart Contract Integration:</strong> This form will deploy a prediction market contract, 
-        initialize YES/NO tokens, and set up the market with your initial liquidity. Make sure you have 
-        enough PYUSD tokens for the initial liquidity amount.
+        💡 <strong>Smart Contract Integration:</strong> This form will deploy a
+        prediction market contract, initialize YES/NO tokens, and set up the
+        market with your initial liquidity. Make sure you have enough PYUSD
+        tokens for the initial liquidity amount.
       </div>
 
       {/* Custom Date/Time Picker Modal */}
@@ -571,112 +591,146 @@ export default function PredictionForm() {
                 </button>
               </div>
             </div>
-            
+
             <div className="p-4">
               {/* Calendar */}
               <div className="mb-6">
                 <div className="text-xs text-foreground/60 mb-2 text-center">
-                  Select a date 
+                  Select a date
                 </div>
                 <div className="flex items-center justify-between mb-4">
                   <button
-                    onClick={() => navigateMonth('prev')}
+                    onClick={() => navigateMonth("prev")}
                     className="p-1 hover:bg-background rounded"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <h4 className="font-medium">
-                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    {currentMonth.toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </h4>
                   <button
-                    onClick={() => navigateMonth('next')}
+                    onClick={() => navigateMonth("next")}
                     className="p-1 hover:bg-background rounded"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                
+
                 <div className="grid grid-cols-7 gap-1 mb-2">
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                    <div key={day} className="text-xs text-foreground/60 text-center py-2">
+                  {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                    <div
+                      key={day}
+                      className="text-xs text-foreground/60 text-center py-2"
+                    >
                       {day}
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="grid grid-cols-7 gap-1">
-                  {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map((_, i) => (
-                    <div key={`empty-${i}`} className="h-8" />
-                  ))}
-                  {Array.from({ length: getDaysInMonth(currentMonth) }, (_, i) => {
-                    const day = i + 1;
-                    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-                    const isDisabled = isDateDisabled(date);
-                    const isSelected = selectedDate && 
-                      selectedDate.getDate() === day && 
-                      selectedDate.getMonth() === currentMonth.getMonth() &&
-                      selectedDate.getFullYear() === currentMonth.getFullYear();
-                    
-                    // Check if this is today
-                    const today = new Date();
-                    const isToday = date.getDate() === today.getDate() && 
-                      date.getMonth() === today.getMonth() && 
-                      date.getFullYear() === today.getFullYear();
-                    
-                    return (
-                      <button
-                        key={day}
-                        onClick={() => !isDisabled && handleDateSelect(date)}
-                        disabled={isDisabled}
-                        className={`h-8 text-sm rounded hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-                          isSelected ? 'bg-primary text-primary-foreground' : ''
-                        } ${isToday && !isSelected ? 'ring-2 ring-primary/50 bg-primary/10' : ''}`}
-                      >
-                        {day}
-                        {isToday && !isSelected && (
-                          <span className="text-xs text-primary font-medium">•</span>
-                        )}
-                      </button>
-                    );
-                  })}
+                  {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map(
+                    (_, i) => (
+                      <div key={`empty-${i}`} className="h-8" />
+                    )
+                  )}
+                  {Array.from(
+                    { length: getDaysInMonth(currentMonth) },
+                    (_, i) => {
+                      const day = i + 1;
+                      const date = new Date(
+                        currentMonth.getFullYear(),
+                        currentMonth.getMonth(),
+                        day
+                      );
+                      const isDisabled = isDateDisabled(date);
+                      const isSelected =
+                        selectedDate &&
+                        selectedDate.getDate() === day &&
+                        selectedDate.getMonth() === currentMonth.getMonth() &&
+                        selectedDate.getFullYear() ===
+                          currentMonth.getFullYear();
+
+                      // Check if this is today
+                      const today = new Date();
+                      const isToday =
+                        date.getDate() === today.getDate() &&
+                        date.getMonth() === today.getMonth() &&
+                        date.getFullYear() === today.getFullYear();
+
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => !isDisabled && handleDateSelect(date)}
+                          disabled={isDisabled}
+                          className={`h-8 text-sm rounded hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : ""
+                          } ${
+                            isToday && !isSelected
+                              ? "ring-2 ring-primary/50 bg-primary/10"
+                              : ""
+                          }`}
+                        >
+                          {day}
+                          {isToday && !isSelected && (
+                            <span className="text-xs text-primary font-medium">
+                              •
+                            </span>
+                          )}
+                        </button>
+                      );
+                    }
+                  )}
                 </div>
               </div>
-              
+
               {/* Time Picker */}
               <div className="mb-6">
                 <h4 className="font-medium mb-3">Select Time</h4>
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
-                    <label className="text-xs text-foreground/60 mb-1 block">Hours</label>
+                    <label className="text-xs text-foreground/60 mb-1 block">
+                      Hours
+                    </label>
                     <select
                       value={selectedTime.hours}
-                      onChange={(e) => handleTimeChange('hours', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleTimeChange("hours", parseInt(e.target.value))
+                      }
                       className="w-full rounded-md bg-background border border-border px-3 py-2 text-sm"
                     >
                       {Array.from({ length: 24 }, (_, i) => (
                         <option key={i} value={i}>
-                          {String(i).padStart(2, '0')}
+                          {String(i).padStart(2, "0")}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs text-foreground/60 mb-1 block">Minutes</label>
+                    <label className="text-xs text-foreground/60 mb-1 block">
+                      Minutes
+                    </label>
                     <select
                       value={selectedTime.minutes}
-                      onChange={(e) => handleTimeChange('minutes', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleTimeChange("minutes", parseInt(e.target.value))
+                      }
                       className="w-full rounded-md bg-background border border-border px-3 py-2 text-sm"
                     >
                       {Array.from({ length: 60 }, (_, i) => (
                         <option key={i} value={i}>
-                          {String(i).padStart(2, '0')}
+                          {String(i).padStart(2, "0")}
                         </option>
                       ))}
                     </select>
                   </div>
                 </div>
               </div>
-              
+
               {/* Action Buttons */}
               <div className="flex gap-2">
                 <button
