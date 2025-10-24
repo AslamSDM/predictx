@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Loader2, Github } from "lucide-react";
+import Logo from "./logo";
 import {
   useLoginWithEmail,
   useLoginWithOAuth,
@@ -160,7 +161,14 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 {/* Header */}
                 <div className="p-6 border-b border-border">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Login to PredictX</h2>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="/logo.png"
+                        alt="PredictX Logo"
+                        className="h-8 w-auto"
+                      />
+                      <h2 className="text-2xl font-bold">Login to PredictX</h2>
+                    </div>
                     <button
                       onClick={resetModal}
                       className="w-8 h-8 rounded-full hover:bg-accent flex items-center justify-center transition-colors"

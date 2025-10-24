@@ -1,0 +1,38 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="256" height="256" rx="32" fill="#000000"/>
+  
+  <!-- First wing (blue gradient) -->
+  <path d="M83 71L120 125L90 160L60 125L83 71Z" fill="url(#blue-gradient)"/>
+  <ellipse cx="104" cy="76" rx="4" ry="3" fill="white"/>
+  
+  <!-- Second wing (purple to cyan gradient) -->
+  <path d="M167 71L190 110L170 140L130 100L167 71Z" fill="url(#purple-gradient)"/>
+  
+  <!-- Third wing (cyan) -->
+  <path d="M190 110L210 140L180 170L160 140L190 110Z" fill="url(#cyan-gradient)"/>
+  
+  <!-- Text -->
+  <text x="65" y="220" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#FFFFFF">
+    PREDICT.
+  </text>
+  <text x="170" y="220" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#00D4FF">
+    X
+  </text>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="blue-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A8A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="purple-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A855F7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00D4FF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cyan-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

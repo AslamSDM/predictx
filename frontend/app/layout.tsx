@@ -25,8 +25,12 @@ export const metadata: Metadata = {
   keywords: ["trading", "predictions", "betting", "crypto", "forex", "stocks"],
   authors: [{ name: "PredictX" }],
   icons: {
-    icon: "/icons/icon-192x192.png",
+    icon: [
+      { url: "/icons/logo.ico", type: "image/x-icon" },
+      { url: "/icons/icon-192x192.png", type: "image/png", sizes: "192x192" },
+    ],
     apple: "/icons/icon-192x192.png",
+    shortcut: "/icons/logo.ico",
   },
   appleWebApp: {
     capable: true,
@@ -64,7 +68,9 @@ export default function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
         />
-        <meta name="theme-color" content="#0EA5E9" />
+        <meta name="theme-color" content="#00D4FF" />
+        <link rel="icon" href="/icons/logo.ico" type="image/x-icon" />
+        <link rel="shortcut icon" href="/icons/logo.ico" type="image/x-icon" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>

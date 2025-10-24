@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Download } from "lucide-react";
+import LogoIcon from "./logo-icon";
 import { usePWAInstallPrompt } from "@/lib/hooks/use-pwa";
 
 export default function InstallBanner() {
@@ -35,7 +36,7 @@ export default function InstallBanner() {
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <Download className="w-5 h-5 text-primary" />
+              <img src="/logo.png" alt="PredictX Logo" className="h-5 w-auto" />
               <h3 className="font-semibold">Install PredictX</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-3">
