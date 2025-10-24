@@ -40,35 +40,13 @@ export function useContract() {
     // Let Privy handle wallet creation automatically
     // Don't manually create wallets to prevent multiple wallet creation
     if (wallets.length === 0) {
-      console.log("⏳ Waiting for Privy to create embedded wallet...");
       return false; // Wait for Privy's automatic wallet creation
     }
     return true;
   };
 
   useEffect(() => {
-    if (readyAuth && authenticated && readyWallets) {
-      console.log("✅ Wallets loaded:", wallets);
-      console.log("✅ User info:", user);
-      console.log("✅ Primary wallet:", primaryWallet);
-
-      // Let Privy handle wallet creation automatically
-      // Don't manually trigger wallet creation to prevent multiple wallets
-
-      // Log wallet address if available
-      if (primaryWallet?.address) {
-        console.log("✅ Primary wallet address:", primaryWallet.address);
-      }
-    } else {
-      console.log("⏳ Waiting for wallet initialization...", {
-        readyAuth,
-        authenticated,
-        readyWallets,
-        walletsCount: wallets.length,
-        user: user?.id,
-        primaryWalletAddress: primaryWallet?.address,
-      });
-    }
+    // Privy handles wallet initialization automatically
   }, [
     readyAuth,
     authenticated,
@@ -103,10 +81,9 @@ export function useContract() {
       const provider = await wallet.getEthereumProvider();
       const publicClient = getPublicClient(provider);
       const num = await publicClient.getBlockNumber();
-
-      console.log(num);
+      return num;
     } catch (err: any) {
-      const errorMsg = err.message || "Failed to create prediction";
+      const errorMsg = err.message || "Failed to get block number";
       setError(errorMsg);
       setIsLoading(false);
       throw new Error(errorMsg);
@@ -132,11 +109,8 @@ export function useContract() {
 
     try {
       const provider = await wallet.getEthereumProvider();
-      console.log("PROVIDER --------> ", provider);
-
       const walletClient = getWalletClient(provider);
       const publicClient = getPublicClient(provider);
-      //Approve token for spending
       const approveAmount = parseEther("1000");
 
       const allowance = await publicClient.readContract({
@@ -146,7 +120,6 @@ export function useContract() {
         args: [wallet.address as `0x${string}`, PREDICTION_FACTORY_ADDRESS as `0x${string}`],
       });
 
-      console.log("Allowance:", allowance);
       if (allowance < parseEther("0.01")) {
         const approveHash = await walletClient.writeContract({
           address: STAKE_TOKEN_ADDRESS as `0x${string}`,
@@ -155,7 +128,6 @@ export function useContract() {
           args: [PREDICTION_FACTORY_ADDRESS as `0x${string}`, approveAmount],
           account: wallet.address as `0x${string}`,
         });
-        console.log("Approve transaction hash:", approveHash);
 
         // Track approval transaction
         const approvalTracker = trackTransaction(
@@ -168,34 +140,6 @@ export function useContract() {
         await publicClient.waitForTransactionReceipt({ hash: approveHash });
         (await approvalTracker).success();
       }
-
-      console.log("📋 Parameters received:", {
-        pairName: params.pairName,
-        direction: params.direction,
-        targetPrice: params.targetPrice,
-        endTime: params.endTime,
-        metadataURI: params.metadataURI,
-        initialLiquidity: params.initialLiquidity,
-      });
-      //   console.log("Allowance:", allowance);
-      //   if (allowance < parseEther("0.01")) {
-      //   const approveHash = await walletClient.writeContract({
-      //     address: STAKE_TOKEN_ADDRESS as `0x${string}`,
-      //     abi: ERC20_ABI,
-      //     functionName: "approve",
-      //     args: [PREDICTION_FACTORY_ADDRESS as `0x${string}`, approveAmount],
-      //     account: wallet.address as `0x${string}`,
-      //   });
-      //   console.log("Approve transaction hash:", approveHash);
-      // }
-      console.log("📋 Parameters received:", {
-        pairName: params.pairName,
-        direction: params.direction,
-        targetPrice: params.targetPrice,
-        endTime: params.endTime,
-        metadataURI: params.metadataURI,
-        initialLiquidity: params.initialLiquidity,
-      });
 
       // Convert parameters
       const directionEnum = params.direction === "LONG" ? 0 : 1; // 0 = Up, 1 = Down
@@ -228,15 +172,6 @@ export function useContract() {
         );
       }
 
-      console.log("🚀 Calling createPrediction with args:", {
-        pairName: params.pairName,
-        directionEnum,
-        targetPriceWei: params.targetPrice,
-        endTimeUnix: params.endTime,
-        metadataURI: "",
-        initialLiquidityWei: params.initialLiquidity,
-      });
-
       const hash = await walletClient.writeContract({
         address: PREDICTION_FACTORY_ADDRESS as `0x${string}`,
         abi: PREDICTION_FACTORY_ABI,
@@ -254,7 +189,6 @@ export function useContract() {
         ],
         account: wallet.address as `0x${string}`,
       });
-      console.log("Create prediction transaction hash:", hash);
 
       // Track create prediction transaction
       const predictionTracker = trackTransaction(
@@ -266,31 +200,24 @@ export function useContract() {
       const predictionReceipt = await publicClient.waitForTransactionReceipt({
         hash,
       });
-      console.log("Prediction receipt:", predictionReceipt);
 
       // Notify success
       (await predictionTracker).success();
 
       const PredictionContractAddressCreate2 =
         predictionReceipt.logs[0].address;
-      console.log(
-        "Prediction contract address:",
-        PredictionContractAddressCreate2
-      );
 
       const yesTokenAddress = await publicClient.readContract({
         address: PredictionContractAddressCreate2 as `0x${string}`,
         abi: PREDICTION_ABI,
         functionName: "yesToken",
       });
-      console.log("Yes token address:", yesTokenAddress);
 
       const noTokenAddress = await publicClient.readContract({
         address: PredictionContractAddressCreate2 as `0x${string}`,
         abi: PREDICTION_ABI,
         functionName: "noToken",
       });
-      console.log("No token address:", noTokenAddress);
 
       const approvePyUsdHash = await walletClient.writeContract({
         address: STAKE_TOKEN_ADDRESS as `0x${string}`,
@@ -302,8 +229,12 @@ export function useContract() {
         ],
         account: wallet.address as `0x${string}`,
       });
+      const pyUSDApproveTracker = trackTransaction(
+        approvePyUsdHash,
+        TransactionType.APPROVE,
+        11155111 // Sepolia chain ID
+      );
       await publicClient.waitForTransactionReceipt({ hash: approvePyUsdHash });
-      console.log("Approve PyUsd transaction hash:", approvePyUsdHash);
 
       const initializeMarket = await walletClient.writeContract({
         address: PredictionContractAddressCreate2 as `0x${string}`,
@@ -312,8 +243,12 @@ export function useContract() {
         args: [],
         account: wallet.address as `0x${string}`,
       });
+      const marketInitiTracker = trackTransaction(
+        initializeMarket,
+        TransactionType.MARKET_INITIALIZATION,
+        11155111 // Sepolia chain ID
+      );
       await publicClient.waitForTransactionReceipt({ hash: initializeMarket });
-      console.log("Initialize market transaction hash:", initializeMarket);
 
       setIsLoading(false);
       return [
@@ -361,7 +296,7 @@ export function useContract() {
           params.predictionAddress as `0x${string}`,
         ],
       });
-      console.log("Allowance:", allowance);
+
       if (allowance < parseEther("1")) {
         const approveHash = await walletClient.writeContract({
           address: STAKE_TOKEN_ADDRESS as `0x${string}`,
@@ -370,10 +305,9 @@ export function useContract() {
           args: [params.predictionAddress as `0x${string}`, approveAmount],
           account: wallet.address as `0x${string}`,
         });
-        const approveReceipt = await publicClient.waitForTransactionReceipt({
+        await publicClient.waitForTransactionReceipt({
           hash: approveHash,
         });
-        console.log("Approve transaction hash:", approveHash);
       }
 
       // Then place the bet
@@ -385,8 +319,6 @@ export function useContract() {
         args: [votePosition, amountWei],
         account: wallet.address as `0x${string}`,
       });
-
-      console.log("Vote transaction hash:", voteHash);
 
       // Track bet transaction
       const betTracker = trackTransaction(
@@ -444,12 +376,8 @@ export function useContract() {
       const walletClient = getWalletClient(provider);
       const publicClient = getPublicClient(provider);
 
-      console.log("🔐 Starting resolution process...");
-      console.log("📋 Prediction address:", params.predictionAddress);
-
-      // Step 1: Approve stake tokens (any amount)
-      console.log("✅ Step 1: Approving stake tokens...");
-      const approveAmount = parseEther("1000"); // Approve 1000 tokens
+      // Step 1: Approve stake tokens
+      const approveAmount = parseEther("1000");
 
       const allowance = await publicClient.readContract({
         address: STAKE_TOKEN_ADDRESS as `0x${string}`,
@@ -461,84 +389,22 @@ export function useContract() {
         ],
       });
 
-      // Track first resolution transaction
-      const resolve1Tracker = trackTransaction(
-        resolveP1Hash,
-        TransactionType.RESOLVE_PREDICTION,
-        11155111
-      );
-
-      const resolveP1Receipt = await publicClient.waitForTransactionReceipt({
-        hash: resolveP1Hash,
-      });
-      (await resolve1Tracker).success();
-      console.log("Resolve P1 transaction hash:", resolveP1Hash);
-
-      const resolveP2Hash = await walletClient.writeContract({
-        address: params.predictionAddress as `0x${string}`,
-        abi: PREDICTION_ABI,
-        functionName: "report",
-        args: [params.lowPriceData],
+      const approvePyUsdHash = await walletClient.writeContract({
+        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [params.predictionAddress as `0x${string}`, approveAmount],
         account: wallet.address as `0x${string}`,
       });
-
-      // Track second resolution transaction
-      const resolve2Tracker = trackTransaction(
-        resolveP2Hash,
+      const pyUSDApproveTracker = trackTransaction(
+        approvePyUsdHash,
         TransactionType.RESOLVE_PREDICTION,
-        11155111
+        11155111 // Sepolia chain ID
       );
-
-      const resolveP2Receipt = await publicClient.waitForTransactionReceipt({
-        hash: resolveP2Hash,
-      });
-      (await resolve2Tracker).success();
-      console.log("Resolve P2 transaction hash:", resolveP2Hash);
-
-      const resolveP3Hash = await walletClient.writeContract({
-        address: params.predictionAddress as `0x${string}`,
-        abi: PREDICTION_ABI,
-        functionName: "report",
-        args: [params.currentPriceData],
-        account: wallet.address as `0x${string}`,
-      });
-
-      // Track third resolution transaction
-      const resolve3Tracker = trackTransaction(
-        resolveP3Hash,
-        TransactionType.RESOLVE_PREDICTION,
-        11155111
-      );
-
-      const resolveP3Receipt = await publicClient.waitForTransactionReceipt({
-        hash: resolveP3Hash,
-      });
-      (await resolve3Tracker).success();
-      console.log("Resolve P3 transaction hash:", resolveP3Hash);
-
-      console.log("Current allowance:", allowance);
-
-      if (allowance < parseEther("1")) {
-        const approveHash = await walletClient.writeContract({
-          address: STAKE_TOKEN_ADDRESS as `0x${string}`,
-          abi: ERC20_ABI,
-          functionName: "approve",
-          args: [params.predictionAddress as `0x${string}`, approveAmount],
-          account: wallet.address as `0x${string}`,
-        });
-
-        console.log("Approve transaction hash:", approveHash);
-
-        // Wait for approval transaction to complete
-        await publicClient.waitForTransactionReceipt({ hash: approveHash });
-        console.log("✅ Approval transaction completed");
-      } else {
-        console.log("✅ Sufficient allowance already exists");
-      }
+      await publicClient.waitForTransactionReceipt({ hash: approvePyUsdHash });
+      (await pyUSDApproveTracker).success();
 
       // Step 2: Call backend API to resolve on-chain
-      console.log("✅ Step 2: Calling backend to resolve on-chain...");
-
       const resolveResponse = await fetch("/api/predictions/resolve-onchain", {
         method: "POST",
         headers: {
@@ -560,10 +426,7 @@ export function useContract() {
       }
 
       const resolveData = await resolveResponse.json();
-      console.log("✅ Backend response:", resolveData);
-
       const outcome = resolveData.outcome;
-      console.log("✅ Resolution complete! Outcome:", outcome);
 
       setIsLoading(false);
       return outcome;
@@ -616,7 +479,6 @@ export function useContract() {
         noTokenSupply: noTokenSupply,
       };
     } catch (err: any) {
-      console.error("Failed to get pools:", err);
       return { yesPool: 0, noPool: 0 };
     }
   };
@@ -702,7 +564,6 @@ export function useContract() {
         ],
       });
       if (allowance < parseEther("1")) {
-        console.log("User have no allowance for winning tokens");
         const approveHash = await walletClient.writeContract({
           address: winningTokenAddress as `0x${string}`,
           abi: ERC20_ABI,
@@ -711,7 +572,6 @@ export function useContract() {
           account: wallet.address as `0x${string}`,
         });
         await publicClient.waitForTransactionReceipt({ hash: approveHash });
-        console.log("Approve transaction hash:", approveHash);
       }
       const redeemTxn = await walletClient.writeContract({
         address: predictionAddress as `0x${string}`,
