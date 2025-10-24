@@ -51,6 +51,7 @@ export default function UserProfilePage() {
     "followers" | "following" | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  const [suggestedUsers, setSuggestedUsers] = useState<UserProfile[]>([]);
 
   // Fetch user by wallet address
   useEffect(() => {
@@ -76,6 +77,8 @@ export default function UserProfilePage() {
         console.error("Error fetching user:", err);
         if (err.status === 404) {
           setError("User not found");
+          // Fetch actual users to show when user is not found
+          fetchRandomUsers();
         } else {
           setError("Failed to load user profile");
         }
@@ -140,6 +143,19 @@ export default function UserProfilePage() {
 
   const isOwnProfile = currentUser?.walletAddress === address;
 
+  // Fetch random users when user is not found
+  const fetchRandomUsers = async () => {
+    try {
+      const response = await fetch('/api/users?limit=6');
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestedUsers(data.users || data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
   // Loading state
   if (isLoadingUser) {
     return (
@@ -155,28 +171,95 @@ export default function UserProfilePage() {
   // Error state
   if (error || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Target className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">
-            {error || "User Not Found"}
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            This user profile doesn't exist or couldn't be loaded.
-          </p>
+      <div className="min-h-screen bg-background py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          {/* Back Button */}
           <button
-            onClick={() => router.push("/discover")}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
-            Go to Discover
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </button>
+
+          {/* Error Message */}
+          <div className="text-center mb-8">
+            <Target className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">
+              {error || "User Not Found"}
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              This user profile doesn't exist or couldn't be loaded.
+            </p>
+            <button
+              onClick={() => router.push("/discover")}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Go to Discover
+            </button>
+          </div>
+
+          {/* User Profiles */}
+          {suggestedUsers.length > 0 && (
+            <div>
+              <h3 className="text-xl font-bold mb-6 text-center">
+                Explore User Profiles
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {suggestedUsers.map((profileUser) => (
+                  <div
+                    key={profileUser.id}
+                    onClick={() =>
+                      router.push(`/profile/${profileUser.walletAddress}`)
+                    }
+                    className="bg-gradient-to-br from-card to-card/50 rounded-xl border border-border p-6 hover:border-primary hover:shadow-lg transition-all cursor-pointer group"
+                  >
+                    <div className="text-center mb-4">
+                      {profileUser.avatar ? (
+                        <Image
+                          src={profileUser.avatar}
+                          alt={profileUser.username || "User avatar"}
+                          width={64}
+                          height={64}
+                          className="rounded-full mx-auto mb-3 border-2 border-primary/20"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-3 border-2 border-primary/20">
+                          <Target className="w-8 h-8 text-primary" />
+                        </div>
+                      )}
+                      <h4 className="font-bold text-lg group-hover:text-primary transition-colors">
+                        {profileUser.username || "Anonymous"}
+                      </h4>
+                      <p className="text-xs font-mono text-muted-foreground mt-1">
+                        {profileUser.walletAddress.slice(0, 6)}...
+                        {profileUser.walletAddress.slice(-4)}
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2 text-center">
+                      <div className="text-sm text-muted-foreground">
+                        Member since {formatDate(profileUser.createdAt)}
+                      </div>
+                      <div className="pt-2 border-t border-border/50">
+                        <span className="text-xs text-primary font-medium">
+                          View Profile →
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-8">
+    <div className="min-h-screen bg-background py-4 md:py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* Back Button */}
         <button
@@ -188,42 +271,44 @@ export default function UserProfilePage() {
         </button>
 
         {/* Profile Header */}
-        <div className="bg-gradient-to-br from-primary/10 to-accent/30 rounded-2xl p-8 mb-8 border border-border">
-          <div className="flex items-start gap-6">
+        <div className="bg-gradient-to-br from-primary/10 to-accent/30 rounded-2xl p-4 md:p-8 mb-6 md:mb-8 border border-border">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-6">
             {user.avatar ? (
               <Image
                 src={user.avatar}
                 alt={user.username || "User avatar"}
                 width={96}
                 height={96}
-                className="rounded-full border-4 border-primary shadow-lg"
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-primary shadow-lg"
                 unoptimized
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center border-4 border-primary shadow-lg">
-                <Target className="w-12 h-12 text-primary" />
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/20 flex items-center justify-center border-4 border-primary shadow-lg">
+                <Target className="w-10 h-10 md:w-12 md:h-12 text-primary" />
               </div>
             )}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold">
+            <div className="flex-1 text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
                   {user.username || "Anonymous"}
                 </h1>
                 {!isOwnProfile && (
-                  <FollowButton
-                    targetUserId={user.id}
-                    targetUsername={user.username || undefined}
-                    onFollowChange={handleFollowChange}
-                  />
+                  <div className="mx-auto sm:mx-0">
+                    <FollowButton
+                      targetUserId={user.id}
+                      targetUsername={user.username || undefined}
+                      onFollowChange={handleFollowChange}
+                    />
+                  </div>
                 )}
               </div>
-              <p className="text-sm font-mono text-muted-foreground mb-4">
+              <p className="text-xs sm:text-sm font-mono text-muted-foreground mb-4">
                 {user.walletAddress.slice(0, 10)}...
                 {user.walletAddress.slice(-8)}
               </p>
-              <div className="flex gap-6">
+              <div className="flex justify-center sm:justify-start gap-4 sm:gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     {isLoadingData ? "-" : predictions.length}
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -231,7 +316,7 @@ export default function UserProfilePage() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     {isLoadingData ? "-" : bets.length}
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -242,7 +327,7 @@ export default function UserProfilePage() {
                   onClick={() => setShowFollowModal("followers")}
                   className="text-center hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     {followData.followersCount}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
@@ -254,7 +339,7 @@ export default function UserProfilePage() {
                   onClick={() => setShowFollowModal("following")}
                   className="text-center hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     {followData.followingCount}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
@@ -263,7 +348,7 @@ export default function UserProfilePage() {
                   </div>
                 </button>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     $
                     {isLoadingData
                       ? "-"
@@ -288,27 +373,27 @@ export default function UserProfilePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-border">
+        <div className="flex gap-1 sm:gap-2 mb-6 border-b border-border overflow-x-auto">
           <button
             onClick={() => setActiveTab("predictions")}
-            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+            className={`px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
               activeTab === "predictions"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <TrendingUp className="w-4 h-4 inline mr-2" />
+            <TrendingUp className="w-4 h-4 inline mr-1 sm:mr-2" />
             Predictions ({predictions.length})
           </button>
           <button
             onClick={() => setActiveTab("bets")}
-            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+            className={`px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
               activeTab === "bets"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <DollarSign className="w-4 h-4 inline mr-2" />
+            <DollarSign className="w-4 h-4 inline mr-1 sm:mr-2" />
             Bets ({bets.length})
           </button>
         </div>

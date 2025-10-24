@@ -256,18 +256,6 @@ export default function BetModal({
                   If your prediction is correct
                 </div>
               </div>
-
-              {/* Warning */}
-              <div className="text-xs text-muted-foreground bg-background/30 rounded-lg p-3">
-                ⚠️ Betting involves risk. Only bet what you can afford to lose.
-              </div>
-
-              {/* Blockchain Hook Note */}
-              <div className="text-xs text-blue-500/80 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                💡 <strong>Blockchain Hook:</strong> Smart contract integration
-                is ready but commented out. Enable by deploying contracts and
-                uncommenting the contract call in the code.
-              </div>
             </div>
 
             {/* Footer Actions */}
@@ -281,7 +269,7 @@ export default function BetModal({
                     : "bg-red-500 hover:bg-red-600 disabled:bg-red-500"
                 }`}
               >
-                {isSubmitting ? (
+                {isContractLoading && isSubmitting ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                       <circle

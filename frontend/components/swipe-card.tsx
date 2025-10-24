@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { PredictionWithRelations } from "@/lib/types";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface SwipeCardProps {
   prediction: PredictionWithRelations;
@@ -41,12 +42,7 @@ export default function SwipeCard({
   const [exitX, setExitX] = useState(0);
   const [exitY, setExitY] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
+  const router = useRouter();
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
 
@@ -91,8 +87,6 @@ export default function SwipeCard({
   };
 
   const formatTimeRemaining = (expiresAt: Date | string) => {
-    if (!isClient) return "Loading...";
-    
     const now = new Date();
     const expiry =
       typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt;
@@ -106,8 +100,6 @@ export default function SwipeCard({
   };
 
   const formatExpiryDate = (expiresAt: Date | string) => {
-    if (!isClient) return "Loading...";
-    
     const expiry =
       typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt;
     return expiry.toLocaleDateString("en-US", {
@@ -120,11 +112,6 @@ export default function SwipeCard({
 
   const toNumber = (value: number | { toString: () => string }) => {
     return typeof value === "number" ? value : parseFloat(value.toString());
-  };
-
-  const formatCurrency = (value: number | { toString: () => string }) => {
-    if (!isClient) return "$0";
-    return `$${toNumber(value).toLocaleString()}`;
   };
 
   // Check if description is long enough to need truncation
@@ -195,86 +182,98 @@ export default function SwipeCard({
           )}
 
           {/* Chat Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onChatClick?.(prediction);
-            }}
-            className="absolute top-2 right-2 bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all z-10 active:scale-95 shadow-lg cursor-pointer"
-            aria-label="Open chat"
+          {/* <div
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="absolute top-2 right-2 z-10"
           >
-            <MessageCircle className="w-5 h-5" />
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onChatClick?.(prediction);
+              }}
+              className="bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all active:scale-95 shadow-lg cursor-pointer touch-manipulation"
+              aria-label="Open chat"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </button>
+          </div> */}
           {/* Info Section */}
           <div className="flex-1 p-4 md:p-6 flex flex-col min-h-0 overflow-y-auto relative">
             {/* Chat Button (when no image) */}
             {!prediction.tradeImage && onChatClick && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChatClick(prediction);
-                }}
-                className="absolute top-4 right-4 bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all z-10 active:scale-95 shadow-lg cursor-pointer"
-                aria-label="Open chat"
-              >
-                <MessageCircle className="w-5 h-5" />
-              </button>
-            )}
-
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                {prediction.direction === "LONG" ? (
-                  <TrendingUp className="w-5 h-5 text-green-500" />
-                ) : (
-                  <TrendingDown className="w-5 h-5 text-red-500" />
-                )}
-                <span className="text-sm font-semibold text-muted-foreground">
-                  {prediction.symbol}
-                </span>
-                <span
-                  className={`text-sm font-bold px-2 py-0.5 rounded ${
-                    prediction.direction === "LONG"
-                      ? "bg-green-500/20 text-green-500"
-                      : "bg-red-500/20 text-red-500"
-                  }`}
+              <>
+                <div
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className="absolute top-4 right-4 z-10 "
                 >
-                  {prediction.direction}
-                </span>
-              </div>
-
-              {/* Creator Info - Clickable */}
-              <Link
-                href={`/profile/${prediction.creator.walletAddress}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group"
-              >
-                <div className="text-right">
-                  <div className="text-xs text-muted-foreground">
-                    Created by
-                  </div>
-                  <div className="font-medium group-hover:underline">
-                    @{prediction.creator.username || "Anonymous"}
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChatClick(prediction);
+                    }}
+                    className="bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all active:scale-95 shadow-lg cursor-pointer touch-manipulation"
+                    aria-label="Open chat"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                  </button>
                 </div>
-                {prediction.creator.avatar && (
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
-                    <Image
-                      src={prediction.creator.avatar}
-                      alt={prediction.creator.username || "Creator"}
-                      width={32}
-                      height={32}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-              </Link>
-            </div>
-
+                <div className="absolute bottom-5 right-4 z-10 ">
+                  <button
+                    onClick={(e) => {
+                      router.push(`/profile/${prediction.creator.username}`);
+                    }}
+                    className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group touch-manipulation"
+                  >
+                    {prediction.creator.avatar && (
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                        <Image
+                          src={prediction.creator.avatar}
+                          alt={"Creator"}
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="text-xs text-muted-foreground">
+                        Created by
+                      </div>
+                      <div className="font-medium group-hover:underline">
+                        @{prediction.creator.username || "Anonymous"}
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-3">
+              {prediction.direction === "LONG" ? (
+                <TrendingUp className="w-5 h-5 text-green-500" />
+              ) : (
+                <TrendingDown className="w-5 h-5 text-red-500" />
+              )}
+              <span className="text-sm font-semibold text-muted-foreground">
+                {prediction.symbol}
+              </span>
+              <span
+                className={`text-sm font-bold px-2 py-0.5 rounded ${
+                  prediction.direction === "LONG"
+                    ? "bg-green-500/20 text-green-500"
+                    : "bg-red-500/20 text-red-500"
+                }`}
+              >
+                {prediction.direction}
+              </span>
+            </div>{" "}
             <h2 className="text-xl md:text-2xl font-bold mb-3 line-clamp-2">
               {prediction.title}
             </h2>
-
             {/* Description with Read More */}
             <div className="mb-4">
               <p
@@ -287,26 +286,31 @@ export default function SwipeCard({
                 {prediction.description}
               </p>
               {isLongDescription && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowFullDescription(!showFullDescription);
-                  }}
-                  className="text-xs text-primary hover:underline mt-1 flex items-center gap-1 cursor-pointer"
+                <div
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
-                  {showFullDescription ? (
-                    <>
-                      Show less <ChevronUp className="w-3 h-3" />
-                    </>
-                  ) : (
-                    <>
-                      Read more <ChevronDown className="w-3 h-3" />
-                    </>
-                  )}
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFullDescription(!showFullDescription);
+                    }}
+                    className="text-xs text-primary hover:underline mt-1 flex items-center gap-1 cursor-pointer touch-manipulation"
+                  >
+                    {showFullDescription ? (
+                      <>
+                        Show less <ChevronUp className="w-3 h-3" />
+                      </>
+                    ) : (
+                      <>
+                        Read more <ChevronDown className="w-3 h-3" />
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
-
             {/* Price Targets - Highlighted */}
             {prediction.entryPrice && prediction.targetPrice && (
               <div className="grid grid-cols-2 gap-3 mb-4">
@@ -316,7 +320,7 @@ export default function SwipeCard({
                     Entry Price
                   </div>
                   <div className="text-base font-bold">
-                    {formatCurrency(prediction.entryPrice)}
+                    ${toNumber(prediction.entryPrice).toLocaleString()}
                   </div>
                 </div>
                 <div className="bg-primary/10 border-2 border-primary rounded-lg p-3">
@@ -325,12 +329,11 @@ export default function SwipeCard({
                     Target (TP)
                   </div>
                   <div className="text-base font-bold text-primary">
-                    {formatCurrency(prediction.targetPrice)}
+                    ${toNumber(prediction.targetPrice).toLocaleString()}
                   </div>
                 </div>
               </div>
             )}
-
             {/* Expiry Time - Highlighted */}
             <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mb-4">
               <div className="flex items-center justify-between">
@@ -348,7 +351,6 @@ export default function SwipeCard({
                 <Clock className="w-5 h-5 text-orange-500" />
               </div>
             </div>
-
             {/* Pool Info */}
             <div className="bg-background/30 rounded-lg p-3 mb-3">
               <div className="flex items-center justify-between text-xs mb-2">
@@ -357,18 +359,19 @@ export default function SwipeCard({
                   Total Pool
                 </span>
                 <span className="font-semibold">
-                  {formatCurrency(prediction.totalPool)}
+                  ${toNumber(prediction.totalPool).toLocaleString()}
                 </span>
               </div>
               <div className="flex gap-2 text-xs">
                 <div className="flex-1 bg-green-500/20 text-green-600 dark:text-green-400 rounded px-2 py-1 text-center font-medium">
-                  YES {formatCurrency(prediction.yesPool)}
+                  YES ${toNumber(prediction.yesPool).toLocaleString()}
                 </div>
                 <div className="flex-1 bg-red-500/20 text-red-600 dark:text-red-400 rounded px-2 py-1 text-center font-medium">
-                  NO {formatCurrency(prediction.noPool)}
+                  NO ${toNumber(prediction.noPool).toLocaleString()}
                 </div>
               </div>
             </div>
+            {/* Creator Info - At Bottom */}
           </div>
 
           {/* Swipe Instructions */}
