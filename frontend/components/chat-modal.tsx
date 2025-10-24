@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Smile } from "lucide-react";
+import { X, Send, Smile, Trash2 } from "lucide-react";
 import type { PredictionWithRelations } from "@/lib/types";
 import { useSocket } from "@/lib/hooks/useSocket";
 import { useUserStore } from "@/lib/store";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   id: string;
@@ -86,18 +88,30 @@ export default function ChatModal({
         setMessages((prev) => [...prev, message]);
       };
 
+      const handleDeleteMessage = (messageId: string) => {
+        console.log("🗑️ Deleting message with ID:", messageId);
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      };
+
       socket.on("chat_history", handleChatHistory);
       socket.on("receive_message", handleReceiveMessage);
+      socket.on("delete_message", handleDeleteMessage);
 
       // Cleanup
       return () => {
         socket.off("chat_history", handleChatHistory);
         socket.off("receive_message", handleReceiveMessage);
+        socket.off("delete_message", handleDeleteMessage);
       };
     } catch (error) {
       console.error("Socket error:", error);
     }
   }, [socket, isOpen, roomId]);
+
+  const handleDelete = (messageId: string) => {
+    if (!socket) return;
+    socket.emit("delete_message", { roomId, messageId });
+  };
 
   const handleSendMessage = () => {
     if (!inputText.trim() || !socket || !user) return;
@@ -201,10 +215,19 @@ export default function ChatModal({
                       key={message.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${
+                      className={`flex items-center gap-2 group ${
                         isOwnMessage ? "justify-end" : "justify-start"
                       }`}
                     >
+                      {/* {isOwnMessage && (
+                        <button
+                          onClick={() => handleDelete(message.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500/80 hover:text-red-500"
+                          aria-label="Delete message"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )} */}
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-2 ${
                           isOwnMessage
@@ -218,7 +241,9 @@ export default function ChatModal({
                           </div>
                         )}
                         <div className="text-sm whitespace-pre-wrap break-words">
-                          {message.text}
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {message.text}
+                          </ReactMarkdown>
                         </div>
                         <div className={`text-xs mt-1 opacity-70`}>
                           {formatTime(message.timestamp)}

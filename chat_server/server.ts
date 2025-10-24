@@ -75,6 +75,16 @@ io.on("connection", (socket: Socket) => {
       }
     }
   );
+  socket.on("delete_message", (messageId: string, room: string) => {
+    console.log(`Request to delete message ${messageId} in room ${room}`);
+    const roomMessages = getMessageHistory(room);
+    const index = roomMessages.findIndex((msg) => msg.id === messageId);
+    if (index !== -1) {
+      roomMessages.splice(index, 1);
+      io.to(room).emit("delete_message", messageId);
+      console.log(`Message ${messageId} deleted from room ${room}`);
+    }
+  });
 
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
@@ -95,8 +105,9 @@ async function handleAICommand(
   const { action: command, target, type } = action;
 
   const aiMessage = {
+    id: randomUUID(),
     username: "Blockscout AI",
-    text: `Running ${command} on ${type} ${target}...`,
+    text: `Loading...`,
     timestamp: Date.now(),
   };
   io.to(roomId).emit("receive_message", aiMessage);
@@ -122,6 +133,9 @@ async function handleAICommand(
       text: `Error processing command: ${error.message}`,
       timestamp: Date.now(),
     };
+    // Delete the loading message after 5 seconds
+    io.to(roomId).emit("delete_message", aiMessage.id);
+
     io.to(roomId).emit("receive_message", errorMessage);
   }
 }
