@@ -50,7 +50,7 @@ export default function SiteNav() {
   const handleMobileInstall = async () => {
     // Check if it's iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
+
     if (installPrompt) {
       // Android/Chrome - use native install prompt
       const success = await promptInstall();
@@ -61,17 +61,17 @@ export default function SiteNav() {
       // iOS - show manual installation instructions
       alert(
         "To install this app on your iPhone/iPad:\n\n" +
-        "1. Tap the Share button at the bottom of the screen\n" +
-        '2. Scroll down and tap "Add to Home Screen"\n' +
-        '3. Tap "Add" in the top right corner'
+          "1. Tap the Share button at the bottom of the screen\n" +
+          '2. Scroll down and tap "Add to Home Screen"\n' +
+          '3. Tap "Add" in the top right corner'
       );
       setIsMobileMenuOpen(false);
     } else {
       // Other browsers - show general instructions
       alert(
         "To install this app:\n\n" +
-        "• Look for an install icon in your browser's address bar\n" +
-        "• Or check your browser's menu for 'Install app' or 'Add to home screen'"
+          "• Look for an install icon in your browser's address bar\n" +
+          "• Or check your browser's menu for 'Install app' or 'Add to home screen'"
       );
       setIsMobileMenuOpen(false);
     }
@@ -108,6 +108,11 @@ export default function SiteNav() {
           <div className="flex items-center gap-2">
             {/* Desktop Auth */}
             <div className="hidden sm:block">
+              {authenticated ? <UserProfileDropdown /> : <WalletConnect />}
+            </div>
+
+            {/* Mobile Auth - Always visible */}
+            <div className="sm:hidden">
               {authenticated ? <UserProfileDropdown /> : <WalletConnect />}
             </div>
 
@@ -154,11 +159,6 @@ export default function SiteNav() {
                   <span>Install App</span>
                 </button>
               )}
-
-              {/* Mobile Auth */}
-              <div className="pt-4 border-t border-border">
-                {authenticated ? <UserProfileDropdown /> : <WalletConnect />}
-              </div>
             </div>
           </div>
         </div>
