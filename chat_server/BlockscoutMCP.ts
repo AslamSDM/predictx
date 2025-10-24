@@ -1,24 +1,85 @@
-/**
- * Blockscout MCP Server Integration
- *
- * This module provides MCP (Model Context Protocol) tools for blockchain interactions
- * using Blockscout API for contract verification, ABI fetching, and transaction validation
- */
+import axios from "axios";
 
-const axios = require("axios");
+interface AbiResponse {
+  success: boolean;
+  abi?: any;
+  address: string;
+  error?: string;
+}
 
-/**
- * Blockscout API client
- */
-class BlockscoutMCP {
+interface SourceCodeResponse {
+  success: boolean;
+  sourceCode?: string;
+  contractName?: string;
+  compilerVersion?: string;
+  optimizationUsed?: string;
+  runs?: string;
+  constructorArguments?: string;
+  evmVersion?: string;
+  library?: string;
+  licenseType?: string;
+  proxy?: string;
+  implementation?: string;
+  swarmSource?: string;
+  error?: string;
+}
+
+interface TransactionInfoResponse {
+  success: boolean;
+  transaction?: any;
+  error?: string;
+}
+
+interface TransactionStatusResponse {
+  success: boolean;
+  status?: string;
+  text?: string;
+  error?: string;
+}
+
+interface ValidationResponse {
+  address: string;
+  isVerified: boolean;
+  hasSource: boolean;
+  abi: any | null;
+  contractName: string | null;
+  compilerVersion: string | null;
+  validation: {
+    canInteract: boolean;
+    isProxy: boolean;
+    implementation: string | null;
+  };
+}
+
+interface FunctionSignature {
+  name: string;
+  stateMutability: string;
+  inputs: any[];
+  outputs: any[];
+}
+
+interface EventSignature {
+  name: string;
+  inputs: any[];
+}
+
+interface ContractFunctionsResponse {
+  success: boolean;
+  functions?: FunctionSignature[];
+  events?: EventSignature[];
+  totalFunctions?: number;
+  totalEvents?: number;
+  error?: string;
+}
+
+export class BlockscoutMCP {
+  private apiUrl: string;
+
   constructor(apiUrl = "https://eth-sepolia.blockscout.com/api") {
     this.apiUrl = apiUrl;
   }
 
-  /**
-   * Get contract ABI from Blockscout
-   */
-  async getContractABI(contractAddress) {
+  async getContractABI(contractAddress: string): Promise<AbiResponse> {
     try {
       const response = await axios.get(this.apiUrl, {
         params: {
@@ -41,7 +102,7 @@ class BlockscoutMCP {
           address: contractAddress,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error.message,
@@ -50,10 +111,9 @@ class BlockscoutMCP {
     }
   }
 
-  /**
-   * Get contract source code from Blockscout
-   */
-  async getContractSource(contractAddress) {
+  async getContractSource(
+    contractAddress: string
+  ): Promise<SourceCodeResponse> {
     try {
       const response = await axios.get(this.apiUrl, {
         params: {
@@ -86,7 +146,7 @@ class BlockscoutMCP {
           error: "Contract source not available",
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error.message,
@@ -94,10 +154,7 @@ class BlockscoutMCP {
     }
   }
 
-  /**
-   * Get transaction details from Blockscout
-   */
-  async getTransactionInfo(txHash) {
+  async getTransactionInfo(txHash: string): Promise<TransactionInfoResponse> {
     try {
       const response = await axios.get(this.apiUrl, {
         params: {
@@ -118,7 +175,7 @@ class BlockscoutMCP {
           error: "Transaction not found",
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error.message,
@@ -126,10 +183,9 @@ class BlockscoutMCP {
     }
   }
 
-  /**
-   * Get transaction receipt status
-   */
-  async getTransactionStatus(txHash) {
+  async getTransactionStatus(
+    txHash: string
+  ): Promise<TransactionStatusResponse> {
     try {
       const response = await axios.get(this.apiUrl, {
         params: {
@@ -143,7 +199,7 @@ class BlockscoutMCP {
         return {
           success: true,
           status: response.data.result.status,
-          message: response.data.result.status === "1" ? "Success" : "Failed",
+          text: response.data.result.status === "1" ? "Success" : "Failed",
         };
       } else {
         return {
@@ -151,7 +207,7 @@ class BlockscoutMCP {
           error: "Transaction receipt not found",
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error.message,
@@ -159,11 +215,7 @@ class BlockscoutMCP {
     }
   }
 
-  /**
-   * Validate contract interaction
-   * Checks if a contract address is valid and verified
-   */
-  async validateContract(contractAddress) {
+  async validateContract(contractAddress: string): Promise<ValidationResponse> {
     const abiResult = await this.getContractABI(contractAddress);
     const sourceResult = await this.getContractSource(contractAddress);
 
@@ -172,24 +224,25 @@ class BlockscoutMCP {
       isVerified: abiResult.success,
       hasSource: sourceResult.success,
       abi: abiResult.success ? abiResult.abi : null,
-      contractName: sourceResult.success ? sourceResult.contractName : null,
+      contractName: sourceResult.success
+        ? sourceResult.contractName ?? null
+        : null,
       compilerVersion: sourceResult.success
-        ? sourceResult.compilerVersion
+        ? sourceResult.compilerVersion ?? null
         : null,
       validation: {
         canInteract: abiResult.success,
         isProxy: sourceResult.success ? sourceResult.proxy === "1" : false,
         implementation: sourceResult.success
-          ? sourceResult.implementation
+          ? sourceResult.implementation ?? null
           : null,
       },
     };
   }
 
-  /**
-   * Get contract function signatures
-   */
-  async getContractFunctions(contractAddress) {
+  async getContractFunctions(
+    contractAddress: string
+  ): Promise<ContractFunctionsResponse> {
     const abiResult = await this.getContractABI(contractAddress);
 
     if (!abiResult.success) {
@@ -200,8 +253,8 @@ class BlockscoutMCP {
     }
 
     const functions = abiResult.abi
-      .filter((item) => item.type === "function")
-      .map((func) => ({
+      .filter((item: any) => item.type === "function")
+      .map((func: any) => ({
         name: func.name,
         stateMutability: func.stateMutability,
         inputs: func.inputs,
@@ -209,8 +262,8 @@ class BlockscoutMCP {
       }));
 
     const events = abiResult.abi
-      .filter((item) => item.type === "event")
-      .map((event) => ({
+      .filter((item: any) => item.type === "event")
+      .map((event: any) => ({
         name: event.name,
         inputs: event.inputs,
       }));
@@ -225,22 +278,16 @@ class BlockscoutMCP {
   }
 }
 
-/**
- * MCP Tools for AI Integration
- */
-const mcpTools = {
-  /**
-   * Tool: Get Contract ABI
-   */
-  async getContractABI(contractAddress, chainApiUrl) {
+export const mcpTools = {
+  async getContractABI(contractAddress: string, chainApiUrl: string) {
     const mcp = new BlockscoutMCP(chainApiUrl);
     return await mcp.getContractABI(contractAddress);
   },
 
-  /**
-   * Tool: Validate Trade Idea Contract
-   */
-  async validateTradeIdeaContract(contractAddress, chainApiUrl) {
+  async validateTradeIdeaContract(
+    contractAddress: string,
+    chainApiUrl: string
+  ) {
     const mcp = new BlockscoutMCP(chainApiUrl);
     const validation = await mcp.validateContract(contractAddress);
 
@@ -258,20 +305,17 @@ const mcpTools = {
     };
   },
 
-  /**
-   * Tool: Get Transaction Status for Chat
-   */
-  async getTransactionStatusForChat(txHash, chainApiUrl) {
+  async getTransactionStatusForChat(txHash: string, chainApiUrl: string) {
     const mcp = new BlockscoutMCP(chainApiUrl);
     const status = await mcp.getTransactionStatus(txHash);
 
     if (status.success) {
       return {
         txHash,
-        status: status.message,
+        status: status.text,
         explorerUrl: `${chainApiUrl.replace("/api", "")}/tx/${txHash}`,
-        message:
-          status.message === "Success"
+        text:
+          status.text === "Success"
             ? "✅ Transaction confirmed successfully!"
             : "❌ Transaction failed. Check the explorer for details.",
       };
@@ -284,10 +328,10 @@ const mcpTools = {
     }
   },
 
-  /**
-   * Tool: Get Contract Functions for AI
-   */
-  async getContractFunctionsForAI(contractAddress, chainApiUrl) {
+  async getContractFunctionsForAI(
+    contractAddress: string,
+    chainApiUrl: string
+  ) {
     const mcp = new BlockscoutMCP(chainApiUrl);
     const functions = await mcp.getContractFunctions(contractAddress);
 
@@ -298,12 +342,11 @@ const mcpTools = {
       };
     }
 
-    // Analyze functions for prediction compatibility
-    const readFunctions = functions.functions.filter(
+    const readFunctions = functions.functions!.filter(
       (f) => f.stateMutability === "view" || f.stateMutability === "pure"
     );
 
-    const writeFunctions = functions.functions.filter(
+    const writeFunctions = functions.functions!.filter(
       (f) =>
         f.stateMutability === "nonpayable" || f.stateMutability === "payable"
     );
@@ -320,20 +363,16 @@ const mcpTools = {
         read: readFunctions.map((f) => f.name),
         write: writeFunctions.map((f) => f.name),
       },
-      events: functions.events.map((e) => e.name),
+      events: functions.events!.map((e) => e.name),
       predictionSuggestions: this.generatePredictionSuggestions(
-        functions.functions
+        functions.functions!
       ),
     };
   },
 
-  /**
-   * Generate prediction suggestions based on contract functions
-   */
-  generatePredictionSuggestions(functions) {
+  generatePredictionSuggestions(functions: FunctionSignature[]) {
     const suggestions = [];
 
-    // Look for price/value related functions
     const priceRelated = functions.filter(
       (f) =>
         f.name.toLowerCase().includes("price") ||
@@ -349,7 +388,6 @@ const mcpTools = {
       });
     }
 
-    // Look for balance functions
     const balanceRelated = functions.filter(
       (f) =>
         f.name.toLowerCase().includes("balance") ||
@@ -366,9 +404,4 @@ const mcpTools = {
 
     return suggestions;
   },
-};
-
-module.exports = {
-  BlockscoutMCP,
-  mcpTools,
 };
