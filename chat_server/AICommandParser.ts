@@ -1,35 +1,29 @@
-/**
- * AI Command Parser
- *
- * Parses chat messages for AI commands and tags like @blockscout
- * Now integrated with LLM for enhanced analysis
- */
+import { BlockscoutAI } from './LLMIntegration';
 
-const { BlockscoutAI } = require('./LLMIntegration');
-
-/**
- * Extract Ethereum addresses from text
- */
-function extractAddresses(text) {
+function extractAddresses(text: string): string[] {
   const addressRegex = /0x[a-fA-F0-9]{40}/g;
   return text.match(addressRegex) || [];
 }
 
-/**
- * Extract transaction hashes from text
- */
-function extractTxHashes(text) {
+function extractTxHashes(text: string): string[] {
   const txHashRegex = /0x[a-fA-F0-9]{64}/g;
   return text.match(txHashRegex) || [];
 }
 
-/**
- * Parse AI command from message
- */
-function parseAICommand(message) {
+interface ParsedCommand {
+  trigger: string;
+  hasTag?: boolean;
+  text: string;
+  addresses: string[];
+  txHashes: string[];
+  command?: string;
+}
+
+function parseAICommand(message: string): ParsedCommand | null {
   const lowerMessage = message?.toLowerCase();
 
-  // Check for @blockscout tag
+  if (!lowerMessage) return null;
+
   if (lowerMessage.includes("@blockscout")) {
     return {
       trigger: "@blockscout",
@@ -40,84 +34,74 @@ function parseAICommand(message) {
     };
   }
 
-  // Check for validate command
-  if (
-    lowerMessage.includes("validate") &&
-    extractAddresses(message).length > 0
-  ) {
+  if (lowerMessage.includes("validate") && extractAddresses(message).length > 0) {
     return {
       trigger: "validate",
       command: "validate",
       addresses: extractAddresses(message),
       text: message,
+      txHashes: [],
     };
   }
 
-  // Check for analyze command
-  if (
-    lowerMessage.includes("analyze") &&
-    extractAddresses(message).length > 0
-  ) {
+  if (lowerMessage.includes("analyze") && extractAddresses(message).length > 0) {
     return {
       trigger: "analyze",
       command: "analyze",
       addresses: extractAddresses(message),
       text: message,
+      txHashes: [],
     };
   }
 
-  // Check for status command
-  if (
-    (lowerMessage.includes("status") || lowerMessage.includes("check tx")) &&
-    extractTxHashes(message).length > 0
-  ) {
+  if ((lowerMessage.includes("status") || lowerMessage.includes("check tx")) && extractTxHashes(message).length > 0) {
     return {
       trigger: "status",
       command: "status",
       txHashes: extractTxHashes(message),
       text: message,
+      addresses: [],
     };
   }
 
-  // Check for get-abi command
   if (lowerMessage.includes("get-abi") || lowerMessage.includes("get abi")) {
     return {
       trigger: "get-abi",
       command: "get-abi",
       addresses: extractAddresses(message),
       text: message,
+      txHashes: [],
     };
   }
 
   return null;
 }
 
-/**
- * Determine which MCP action to take
- */
-function determineAction(parsedCommand) {
+interface Action {
+  action: string;
+  target?: string;
+  type: string;
+}
+
+function determineAction(parsedCommand: ParsedCommand | null): Action | null {
   if (!parsedCommand) return null;
 
   const { trigger, addresses, txHashes } = parsedCommand;
 
-  // @blockscout tag - intelligent routing
   if (trigger === "@blockscout") {
     if (addresses.length > 0 && txHashes.length === 0) {
-      // Has addresses, no tx hashes -> analyze contract
       return {
         action: "analyze",
         target: addresses[0],
         type: "address",
       };
     } else if (txHashes.length > 0) {
-      // Has tx hashes -> check status
       return {
         action: "status",
         target: txHashes[0],
         type: "transaction",
       };
     } else {
-      // No specific target -> show help
       return {
         action: "help",
         type: "help",
@@ -125,7 +109,6 @@ function determineAction(parsedCommand) {
     }
   }
 
-  // Specific commands
   if (trigger === "validate" && addresses.length > 0) {
     return {
       action: "validate",
@@ -161,10 +144,7 @@ function determineAction(parsedCommand) {
   return null;
 }
 
-/**
- * Generate help message for Blockscout commands
- */
-function getHelpMessage() {
+function getHelpMessage(): string {
   return `🤖 **Blockscout AI Assistant Help**
 
 **Tag Usage:**
@@ -185,10 +165,12 @@ function getHelpMessage() {
 Just mention me with an address or transaction hash and I'll help! 🚀`;
 }
 
-module.exports = {
+export {
   parseAICommand,
   determineAction,
   extractAddresses,
   extractTxHashes,
   getHelpMessage,
+  ParsedCommand,
+  Action,
 };

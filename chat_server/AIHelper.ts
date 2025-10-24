@@ -1,25 +1,20 @@
-/**
- * AI Helper for Prediction Analysis
- *
- * Provides AI-powered features for prediction validation and summarization
- */
+import { mcpTools } from "./BlockscoutMCP";
+import { BlockscoutAI } from "./LLMIntegration";
 
-const { mcpTools } = require("./BlockscoutMCP");
-const { BlockscoutAI } = require("./LLMIntegration");
-
-/**
- * Extract contract addresses from text
- */
-function extractContractAddresses(text) {
+export function extractContractAddresses(text: string): string[] {
   const addressRegex = /0x[a-fA-F0-9]{40}/g;
   const matches = text.match(addressRegex);
   return matches ? [...new Set(matches)] : [];
 }
 
-/**
- * Detect what the user wants to do based on message
- */
-function detectIntent(message) {
+export type Intent =
+  | "validate"
+  | "summarize"
+  | "analyze"
+  | "predict"
+  | "general";
+
+export function detectIntent(message: string): Intent {
   const lowerMessage = message.toLowerCase();
 
   if (
@@ -54,26 +49,39 @@ function detectIntent(message) {
   return "general";
 }
 
-/**
- * Validate a prediction using AI
- */
-async function validatePrediction(predictionData, chainApiUrl) {
+interface PredictionData {
+  symbol: string;
+  targetPrice: number;
+  endTime: string;
+  description: string;
+}
+
+interface Bet {
+  position: "YES" | "NO";
+  amount: number;
+}
+
+export async function validatePrediction(
+  predictionData: PredictionData,
+  chainApiUrl: string
+) {
   try {
     const ai = new BlockscoutAI();
 
-    // Use AI for intelligent validation
-    const aiValidation = await ai.validatePrediction(predictionData, {}, chainApiUrl);
+    const aiValidation = await ai.validatePrediction(
+      predictionData,
+      {},
+      chainApiUrl
+    );
 
-    // Also perform basic validation checks
     const basicResults = {
       isValid: true,
-      issues: [],
-      warnings: [],
-      recommendations: [],
-      contractChecks: [],
+      issues: [] as string[],
+      warnings: [] as string[],
+      recommendations: [] as string[],
+      contractChecks: [] as any[],
     };
 
-    // Check if prediction has required fields
     if (
       !predictionData.symbol ||
       !predictionData.targetPrice ||
@@ -85,23 +93,18 @@ async function validatePrediction(predictionData, chainApiUrl) {
       );
     }
 
-    // Check if target price is reasonable
     if (predictionData.targetPrice <= 0) {
       basicResults.isValid = false;
       basicResults.issues.push("Target price must be greater than 0");
     }
 
-    // Check if end time is in the future
     const endTime = new Date(predictionData.endTime);
     if (endTime <= new Date()) {
       basicResults.isValid = false;
       basicResults.issues.push("End time must be in the future");
     }
 
-    // Extract and validate contract addresses
-    const addresses = extractContractAddresses(
-      predictionData.description || ""
-    );
+    const addresses = extractContractAddresses(predictionData.description || "");
 
     for (const address of addresses) {
       try {
@@ -120,7 +123,7 @@ async function validatePrediction(predictionData, chainApiUrl) {
             `Contract ${address} is not verified on Blockscout`
           );
         }
-      } catch (error) {
+      } catch (error: any) {
         basicResults.warnings.push(
           `Could not validate contract ${address}: ${error.message}`
         );
@@ -134,9 +137,9 @@ async function validatePrediction(predictionData, chainApiUrl) {
         isValid: basicResults.isValid,
         hasAI: true,
         addressesFound: addresses.length,
-      }
+      },
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       aiValidation: "AI validation failed: " + error.message,
       basicValidation: {
@@ -150,22 +153,26 @@ async function validatePrediction(predictionData, chainApiUrl) {
         isValid: false,
         hasAI: false,
         addressesFound: 0,
-      }
+      },
     };
   }
 }
 
-/**
- * Summarize a prediction using AI
- */
-async function summarizePrediction(predictionData, bets = [], chainApiUrl) {
+export async function summarizePrediction(
+  predictionData: PredictionData,
+  bets: Bet[] = [],
+  chainApiUrl: string
+) {
   try {
     const ai = new BlockscoutAI();
 
-    // Use AI for intelligent summarization
-    const aiSummary = await ai.summarizePrediction(predictionData, bets, {}, chainApiUrl);
+    const aiSummary = await ai.summarizePrediction(
+      predictionData,
+      bets,
+      {},
+      chainApiUrl
+    );
 
-    // Also provide basic statistics for reference
     const totalBets = bets.length;
     const yesBets = bets.filter((b) => b.position === "YES").length;
     const noBets = bets.filter((b) => b.position === "NO").length;
@@ -185,9 +192,9 @@ async function summarizePrediction(predictionData, bets = [], chainApiUrl) {
       totalNoAmount,
       totalPool,
       yesPercentage:
-        totalPool > 0 ? ((totalYesAmount / totalPool) * 100).toFixed(1) : 0,
+        totalPool > 0 ? ((totalYesAmount / totalPool) * 100).toFixed(1) : "0",
       noPercentage:
-        totalPool > 0 ? ((totalNoAmount / totalPool) * 100).toFixed(1) : 0,
+        totalPool > 0 ? ((totalNoAmount / totalPool) * 100).toFixed(1) : "0",
     };
 
     return {
@@ -197,10 +204,11 @@ async function summarizePrediction(predictionData, bets = [], chainApiUrl) {
         hasAI: true,
         totalBets,
         totalPool,
-        addressesFound: extractContractAddresses(predictionData.description || "").length,
-      }
+        addressesFound: extractContractAddresses(predictionData.description || "")
+          .length,
+      },
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       aiSummary: "AI summarization failed: " + error.message,
       basicStats: {
@@ -212,18 +220,15 @@ async function summarizePrediction(predictionData, bets = [], chainApiUrl) {
       combined: {
         hasAI: false,
         error: error.message,
-      }
+      },
     };
   }
 }
 
-/**
- * Calculate time remaining
- */
-function calculateTimeRemaining(endTime) {
+export function calculateTimeRemaining(endTime: string): string {
   const now = new Date();
   const end = new Date(endTime);
-  const diff = end - now;
+  const diff = end.getTime() - now.getTime();
 
   if (diff <= 0) {
     return "Expired";
@@ -242,59 +247,7 @@ function calculateTimeRemaining(endTime) {
   }
 }
 
-/**
- * Generate recommendations based on summary
- */
-function generateRecommendations(summary) {
-  const recommendations = [];
-
-  // Based on statistics
-  if (summary.statistics.totalBets === 0) {
-    recommendations.push("🎯 Be the first to place a bet!");
-  } else if (summary.statistics.totalBets < 5) {
-    recommendations.push("📊 Low participation - early bet advantage");
-  }
-
-  // Based on pool distribution
-  const yesPercent = parseFloat(summary.statistics.yesPercentage);
-  const noPercent = parseFloat(summary.statistics.noPercentage);
-
-  if (Math.abs(yesPercent - noPercent) > 30) {
-    recommendations.push(
-      "⚖️ Unbalanced pool - higher rewards for contrarian bets"
-    );
-  }
-
-  // Based on sentiment
-  if (summary.sentiment.confidence === "High") {
-    recommendations.push(
-      `🎯 Strong ${summary.sentiment.overall} sentiment detected`
-    );
-  }
-
-  // Based on time
-  if (
-    summary.overview.timeRemaining.includes("h") &&
-    !summary.overview.timeRemaining.includes("d")
-  ) {
-    recommendations.push("⏰ Less than 24 hours remaining - bet soon!");
-  }
-
-  // Based on technical analysis
-  if (
-    summary.technicalAnalysis.contracts &&
-    summary.technicalAnalysis.contracts.length > 0
-  ) {
-    recommendations.push("🔍 On-chain data available for analysis");
-  }
-
-  return recommendations;
-}
-
-/**
- * Format validation result for chat
- */
-function formatValidationResult(validation) {
+export function formatValidationResult(validation: any): string {
   let message = "🤖 **Blockscout AI - Prediction Validation**\n\n";
 
   if (validation.isValid) {
@@ -305,7 +258,7 @@ function formatValidationResult(validation) {
 
   if (validation.issues.length > 0) {
     message += "**❌ Issues:**\n";
-    validation.issues.forEach((issue) => {
+    validation.issues.forEach((issue: string) => {
       message += `• ${issue}\n`;
     });
     message += "\n";
@@ -313,7 +266,7 @@ function formatValidationResult(validation) {
 
   if (validation.warnings.length > 0) {
     message += "**⚠️ Warnings:**\n";
-    validation.warnings.forEach((warning) => {
+    validation.warnings.forEach((warning: string) => {
       message += `• ${warning}\n`;
     });
     message += "\n";
@@ -321,7 +274,7 @@ function formatValidationResult(validation) {
 
   if (validation.contractChecks.length > 0) {
     message += "**🔗 Contract Checks:**\n";
-    validation.contractChecks.forEach((check) => {
+    validation.contractChecks.forEach((check: any) => {
       const status = check.isValid ? "✅" : "❌";
       message += `${status} ${check.address.slice(
         0,
@@ -337,7 +290,7 @@ function formatValidationResult(validation) {
 
   if (validation.recommendations.length > 0) {
     message += "**💡 Recommendations:**\n";
-    validation.recommendations.forEach((rec) => {
+    validation.recommendations.forEach((rec: string) => {
       message += `${rec}\n`;
     });
   }
@@ -345,20 +298,18 @@ function formatValidationResult(validation) {
   return message;
 }
 
-/**
- * Format summary result for chat
- */
-function formatSummaryResult(summary) {
+export function formatSummaryResult(summary: any): string {
   let message = "🤖 **Blockscout AI - Prediction Summary**\n\n";
 
   // Overview
   message += "**📊 Overview:**\n";
   message += `• Symbol: ${summary.overview.symbol}\n`;
-  message += `• Direction: ${
+  message += `• Direction: ${ 
     summary.overview.direction === "LONG"
       ? "📈 LONG (Bullish)"
       : "📉 SHORT (Bearish)"
-  }\n`;
+  }
+`;
   message += `• Target Price: $${summary.overview.targetPrice}\n`;
   message += `• Time Remaining: ${summary.overview.timeRemaining}\n\n`;
 
@@ -368,10 +319,12 @@ function formatSummaryResult(summary) {
   message += `• Total Pool: $${summary.statistics.totalPool.toFixed(2)}\n`;
   message += `• YES Bets: ${summary.statistics.yesBets} (${
     summary.statistics.yesPercentage
-  }% - $${summary.statistics.totalYesAmount.toFixed(2)})\n`;
+  }% - $${summary.statistics.totalYesAmount.toFixed(2)})
+`;
   message += `• NO Bets: ${summary.statistics.noBets} (${
     summary.statistics.noPercentage
-  }% - $${summary.statistics.totalNoAmount.toFixed(2)})\n\n`;
+  }% - $${summary.statistics.totalNoAmount.toFixed(2)})
+\n`;
 
   // Sentiment
   message += "**🎯 Market Sentiment:**\n";
@@ -388,7 +341,7 @@ function formatSummaryResult(summary) {
       summary.technicalAnalysis.contracts &&
       summary.technicalAnalysis.contracts.length > 0
     ) {
-      summary.technicalAnalysis.contracts.forEach((contract) => {
+      summary.technicalAnalysis.contracts.forEach((contract: any) => {
         message += `\n📝 Contract: ${contract.address.slice(
           0,
           8
@@ -396,7 +349,7 @@ function formatSummaryResult(summary) {
         message += `   • Functions: ${contract.functions.totalFunctions} (${contract.functions.readFunctions} read, ${contract.functions.writeFunctions} write)\n`;
         if (contract.suggestions && contract.suggestions.length > 0) {
           message += `   • Suggestions:\n`;
-          contract.suggestions.forEach((s) => {
+          contract.suggestions.forEach((s: any) => {
             message += `     - ${s.type}: ${s.description}\n`;
           });
         }
@@ -408,19 +361,10 @@ function formatSummaryResult(summary) {
   // Recommendations
   if (summary.recommendations.length > 0) {
     message += "**💡 Recommendations:**\n";
-    summary.recommendations.forEach((rec) => {
+    summary.recommendations.forEach((rec: string) => {
       message += `${rec}\n`;
     });
   }
 
   return message;
 }
-
-module.exports = {
-  extractContractAddresses,
-  detectIntent,
-  validatePrediction,
-  summarizePrediction,
-  formatValidationResult,
-  formatSummaryResult,
-};

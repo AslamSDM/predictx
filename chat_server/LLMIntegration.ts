@@ -1,30 +1,40 @@
-/**
- * LLM Integration for Blockscout AI
- *
- * Integrates with OpenAI or other LLM providers for intelligent
- * prediction analysis, validation, and conversation.
- */
+import OpenAI from "openai";
+import { mcpTools } from "./BlockscoutMCP";
 
-const OpenAI = require("openai");
-const { mcpTools } = require("./BlockscoutMCP");
+interface LLMConfig {
+  apiKey?: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  baseURL?: string;
+}
 
-/**
- * LLM Provider Configuration
- * Supports OpenAI using the official SDK
- */
 class LLMProvider {
-  constructor(config = {}) {
-    this.apiKey =
+  private client: OpenAI | null;
+  private model: string;
+  private temperature: number;
+  private maxTokens: number;
+
+  constructor(config: LLMConfig = {}) {
+    const apiKey =
       config.apiKey || process.env.OPENAI_API_KEY || process.env.LLM_API_KEY;
-    this.model = config.model || process.env.LLM_MODEL || "gpt-3.5-turbo";
+    console.log(
+      "Using LLM API Key:",
+      apiKey ? "✅ Provided" : "❌ Not Provided"
+    );
+    this.model = "gemini-2.5-flash";
+    // ||
+    // config.model ||
+    // process.env.LLM_MODEL ||
+    // "gpt-3.5-turbo";
     this.temperature = config.temperature || 0.7;
     this.maxTokens = config.maxTokens || 1000;
 
-    // Initialize OpenAI client
-    if (this.apiKey) {
+    if (apiKey) {
       this.client = new OpenAI({
-        apiKey: this.apiKey,
-        baseURL: config.baseURL || process.env.OPENAI_BASE_URL, // Allows custom endpoints
+        apiKey,
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+        // baseURL: config.baseURL || process.env.OPENAI_BASE_URL,
       });
     } else {
       console.warn(
@@ -34,10 +44,10 @@ class LLMProvider {
     }
   }
 
-  /**
-   * Call the LLM with a prompt using OpenAI SDK
-   */
-  async chat(messages, options = {}) {
+  async chat(
+    messages: any[],
+    options: { temperature?: number; maxTokens?: number } = {}
+  ): Promise<string> {
     if (!this.client) {
       console.warn(
         "⚠️ OpenAI client not initialized. Using fallback responses."
@@ -47,13 +57,17 @@ class LLMProvider {
     try {
       const completion = await this.client.chat.completions.create({
         model: this.model,
-        messages: messages,
+        messages: messages as any,
         temperature: options.temperature || this.temperature,
         max_tokens: options.maxTokens || this.maxTokens,
       });
-
-      return completion.choices[0].message.content;
-    } catch (error) {
+      console.log(
+        "OpenAI Completion:",
+        completion,
+        completion.choices[0].message
+      );
+      return completion.choices[0].message.content || "";
+    } catch (error: any) {
       console.error("OpenAI API Error:", error.message);
       if (error.status === 401) {
         console.error("❌ Invalid API key. Please check your OPENAI_API_KEY.");
@@ -64,10 +78,7 @@ class LLMProvider {
     }
   }
 
-  /**
-   * Fallback response when OpenAI is not available
-   */
-  fallbackResponse(messages) {
+  private fallbackResponse(messages: any[]): string {
     const userMessage = messages[messages.length - 1]?.content || "";
 
     if (userMessage.toLowerCase().includes("validate")) {
@@ -86,11 +97,11 @@ class LLMProvider {
   }
 }
 
-/**
- * Blockscout AI Assistant
- */
-class BlockscoutAI {
-  constructor(llmProvider) {
+export class BlockscoutAI {
+  private llm: LLMProvider;
+  private systemPrompt: string;
+
+  constructor(llmProvider?: LLMProvider) {
     this.llm = llmProvider || new LLMProvider();
     this.systemPrompt = `You are Blockscout AI, an expert blockchain analyst and prediction market advisor. You help users:
 
@@ -116,43 +127,40 @@ When analyzing predictions, consider:
 Format your responses with markdown for readability.`;
   }
 
-  /**
-   * Validate a prediction using AI
-   */
   async validatePrediction(
-    predictionData,
-    blockscoutData = {},
+    predictionData: any,
+    blockscoutData: any = {},
     chainApiUrl = "https://eth-sepolia.blockscout.com/api"
-  ) {
-    // Extract contract addresses from description
+  ): Promise<string> {
     const addresses = this.extractAddresses(predictionData.description || "");
 
-    // Fetch contract data if addresses found
     let contractData = blockscoutData;
     if (addresses.length > 0 && Object.keys(blockscoutData).length === 0) {
       try {
-        const contractPromises = addresses.slice(0, 2).map(async (address) => {
-          const validation = await mcpTools.validateTradeIdeaContract(
-            address,
-            chainApiUrl
-          );
-          const functions = await mcpTools.getContractFunctionsForAI(
-            address,
-            chainApiUrl
-          );
-          return {
-            address,
-            validation,
-            functions: functions.canAnalyze ? functions : null,
-          };
-        });
+        const contractPromises = addresses
+          .slice(0, 2)
+          .map(async (address: string) => {
+            const validation = await mcpTools.validateTradeIdeaContract(
+              address,
+              chainApiUrl
+            );
+            const functions = await mcpTools.getContractFunctionsForAI(
+              address,
+              chainApiUrl
+            );
+            return {
+              address,
+              validation,
+              functions: functions.canAnalyze ? functions : null,
+            };
+          });
 
         const contractResults = await Promise.all(contractPromises);
         contractData = {
           contracts: contractResults,
           totalContracts: addresses.length,
         };
-      } catch (error) {
+      } catch (error: any) {
         console.warn("Failed to fetch contract data:", error.message);
         contractData = { error: "Failed to fetch contract data" };
       }
@@ -204,15 +212,12 @@ ${JSON.stringify(contractData, null, 2)}
     return await this.llm.chat(messages, { temperature: 0.3 });
   }
 
-  /**
-   * Summarize a prediction using AI
-   */
   async summarizePrediction(
-    predictionData,
-    bets = [],
-    blockscoutData = {},
+    predictionData: any,
+    bets: any[] = [],
+    blockscoutData: any = {},
     chainApiUrl = "https://eth-sepolia.blockscout.com/api"
-  ) {
+  ): Promise<string> {
     const totalBets = bets.length;
     const yesBets = bets.filter((b) => b.position === "YES").length;
     const noBets = bets.filter((b) => b.position === "NO").length;
@@ -223,33 +228,34 @@ ${JSON.stringify(contractData, null, 2)}
       .filter((b) => b.position === "NO")
       .reduce((sum, b) => sum + b.amount, 0);
 
-    // Extract contract addresses and fetch data if needed
     const addresses = this.extractAddresses(predictionData.description || "");
     let contractData = blockscoutData;
     if (addresses.length > 0 && Object.keys(blockscoutData).length === 0) {
       try {
-        const contractPromises = addresses.slice(0, 2).map(async (address) => {
-          const validation = await mcpTools.validateTradeIdeaContract(
-            address,
-            chainApiUrl
-          );
-          const functions = await mcpTools.getContractFunctionsForAI(
-            address,
-            chainApiUrl
-          );
-          return {
-            address,
-            validation,
-            functions: functions.canAnalyze ? functions : null,
-          };
-        });
+        const contractPromises = addresses
+          .slice(0, 2)
+          .map(async (address: string) => {
+            const validation = await mcpTools.validateTradeIdeaContract(
+              address,
+              chainApiUrl
+            );
+            const functions = await mcpTools.getContractFunctionsForAI(
+              address,
+              chainApiUrl
+            );
+            return {
+              address,
+              validation,
+              functions: functions.canAnalyze ? functions : null,
+            };
+          });
 
         const contractResults = await Promise.all(contractPromises);
         contractData = {
           contracts: contractResults,
           totalContracts: addresses.length,
         };
-      } catch (error) {
+      } catch (error: any) {
         console.warn("Failed to fetch contract data:", error.message);
         contractData = { error: "Failed to fetch contract data" };
       }
@@ -310,15 +316,11 @@ ${JSON.stringify(contractData, null, 2)}
     return await this.llm.chat(messages, { temperature: 0.7 });
   }
 
-  /**
-   * Analyze a contract using AI
-   */
   async analyzeContract(
-    contractAddress,
-    contractData = {},
+    contractAddress: string,
+    contractData: any = {},
     chainApiUrl = "https://eth-sepolia.blockscout.com/api"
-  ) {
-    // Fetch comprehensive contract data if not provided
+  ): Promise<string> {
     let enrichedContractData = contractData;
     if (Object.keys(contractData).length === 0) {
       try {
@@ -335,7 +337,7 @@ ${JSON.stringify(contractData, null, 2)}
           functions: functions.canAnalyze ? functions : null,
           abi: source.success ? source : null,
         };
-      } catch (error) {
+      } catch (error: any) {
         console.warn("Failed to fetch contract data:", error.message);
         enrichedContractData = { error: "Failed to fetch contract data" };
       }
@@ -379,10 +381,7 @@ ${JSON.stringify(enrichedContractData, null, 2)}
     return await this.llm.chat(messages);
   }
 
-  /**
-   * Have a general conversation
-   */
-  async chat(userMessage, context = {}) {
+  async chat(userMessage: string, context: any = {}): Promise<string> {
     const contextStr =
       Object.keys(context).length > 0
         ? `\n**Context:**\n${JSON.stringify(context, null, 2)}\n\n`
@@ -396,25 +395,19 @@ Please provide a helpful response related to blockchain, predictions, or on-chai
       { role: "system", content: this.systemPrompt },
       { role: "user", content: prompt },
     ];
-
+    console.log("Chat Messages:", messages);
     return await this.llm.chat(messages);
   }
 
-  /**
-   * Extract Ethereum addresses from text
-   */
-  extractAddresses(text) {
+  private extractAddresses(text: string): string[] {
     const addressRegex = /0x[a-fA-F0-9]{40}/g;
     return text.match(addressRegex) || [];
   }
 
-  /**
-   * Calculate time remaining
-   */
-  calculateTimeRemaining(endTime) {
+  private calculateTimeRemaining(endTime: string): string {
     const now = new Date();
     const end = new Date(endTime);
-    const diff = end - now;
+    const diff = end.getTime() - now.getTime();
 
     if (diff <= 0) return "Expired";
 
@@ -427,8 +420,3 @@ Please provide a helpful response related to blockchain, predictions, or on-chai
     return `${minutes}m`;
   }
 }
-
-module.exports = {
-  LLMProvider,
-  BlockscoutAI,
-};
