@@ -62,6 +62,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`dark antialiased ${orbitron.variable} ${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
     >
       <head>
         <meta

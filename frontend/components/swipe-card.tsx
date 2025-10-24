@@ -15,6 +15,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import type { PredictionWithRelations } from "@/lib/types";
+import Link from "next/link";
 
 interface SwipeCardProps {
   prediction: PredictionWithRelations;
@@ -40,6 +41,11 @@ export default function SwipeCard({
   const [exitX, setExitX] = useState(0);
   const [exitY, setExitY] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
@@ -85,6 +91,8 @@ export default function SwipeCard({
   };
 
   const formatTimeRemaining = (expiresAt: Date | string) => {
+    if (!isClient) return "Loading...";
+    
     const now = new Date();
     const expiry =
       typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt;
@@ -98,6 +106,8 @@ export default function SwipeCard({
   };
 
   const formatExpiryDate = (expiresAt: Date | string) => {
+    if (!isClient) return "Loading...";
+    
     const expiry =
       typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt;
     return expiry.toLocaleDateString("en-US", {
@@ -110,6 +120,11 @@ export default function SwipeCard({
 
   const toNumber = (value: number | { toString: () => string }) => {
     return typeof value === "number" ? value : parseFloat(value.toString());
+  };
+
+  const formatCurrency = (value: number | { toString: () => string }) => {
+    if (!isClient) return "$0";
+    return `$${toNumber(value).toLocaleString()}`;
   };
 
   // Check if description is long enough to need truncation
@@ -207,24 +222,53 @@ export default function SwipeCard({
             )}
 
             {/* Header */}
-            <div className="flex items-center gap-2 mb-3">
-              {prediction.direction === "LONG" ? (
-                <TrendingUp className="w-5 h-5 text-green-500" />
-              ) : (
-                <TrendingDown className="w-5 h-5 text-red-500" />
-              )}
-              <span className="text-sm font-semibold text-muted-foreground">
-                {prediction.symbol}
-              </span>
-              <span
-                className={`text-sm font-bold px-2 py-0.5 rounded ${
-                  prediction.direction === "LONG"
-                    ? "bg-green-500/20 text-green-500"
-                    : "bg-red-500/20 text-red-500"
-                }`}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {prediction.direction === "LONG" ? (
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                ) : (
+                  <TrendingDown className="w-5 h-5 text-red-500" />
+                )}
+                <span className="text-sm font-semibold text-muted-foreground">
+                  {prediction.symbol}
+                </span>
+                <span
+                  className={`text-sm font-bold px-2 py-0.5 rounded ${
+                    prediction.direction === "LONG"
+                      ? "bg-green-500/20 text-green-500"
+                      : "bg-red-500/20 text-red-500"
+                  }`}
+                >
+                  {prediction.direction}
+                </span>
+              </div>
+
+              {/* Creator Info - Clickable */}
+              <Link
+                href={`/profile/${prediction.creator.walletAddress}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group"
               >
-                {prediction.direction}
-              </span>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">
+                    Created by
+                  </div>
+                  <div className="font-medium group-hover:underline">
+                    @{prediction.creator.username || "Anonymous"}
+                  </div>
+                </div>
+                {prediction.creator.avatar && (
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
+                    <Image
+                      src={prediction.creator.avatar}
+                      alt={prediction.creator.username || "Creator"}
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </Link>
             </div>
 
             <h2 className="text-xl md:text-2xl font-bold mb-3 line-clamp-2">
@@ -272,7 +316,7 @@ export default function SwipeCard({
                     Entry Price
                   </div>
                   <div className="text-base font-bold">
-                    ${toNumber(prediction.entryPrice).toLocaleString()}
+                    {formatCurrency(prediction.entryPrice)}
                   </div>
                 </div>
                 <div className="bg-primary/10 border-2 border-primary rounded-lg p-3">
@@ -281,7 +325,7 @@ export default function SwipeCard({
                     Target (TP)
                   </div>
                   <div className="text-base font-bold text-primary">
-                    ${toNumber(prediction.targetPrice).toLocaleString()}
+                    {formatCurrency(prediction.targetPrice)}
                   </div>
                 </div>
               </div>
@@ -313,29 +357,17 @@ export default function SwipeCard({
                   Total Pool
                 </span>
                 <span className="font-semibold">
-                  ${toNumber(prediction.totalPool).toLocaleString()}
+                  {formatCurrency(prediction.totalPool)}
                 </span>
               </div>
               <div className="flex gap-2 text-xs">
                 <div className="flex-1 bg-green-500/20 text-green-600 dark:text-green-400 rounded px-2 py-1 text-center font-medium">
-                  YES ${toNumber(prediction.yesPool).toLocaleString()}
+                  YES {formatCurrency(prediction.yesPool)}
                 </div>
                 <div className="flex-1 bg-red-500/20 text-red-600 dark:text-red-400 rounded px-2 py-1 text-center font-medium">
-                  NO ${toNumber(prediction.noPool).toLocaleString()}
+                  NO {formatCurrency(prediction.noPool)}
                 </div>
               </div>
-            </div>
-
-            {/* Creator */}
-            <div className="text-xs text-center mb-2">
-              <span className="text-muted-foreground">Created by </span>
-              <a
-                href={`/profile/${prediction.creator.walletAddress}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-primary hover:underline font-medium cursor-pointer"
-              >
-                @{prediction.creator.username || "Anonymous"}
-              </a>
             </div>
           </div>
 
