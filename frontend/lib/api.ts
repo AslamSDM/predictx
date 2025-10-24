@@ -256,17 +256,26 @@ export const statsApi = {
 
 // Follow API functions
 export const followApi = {
-  async follow(followerId: string, followingId: string): Promise<{ success: boolean }> {
+  async follow(
+    followerId: string,
+    followingId: string
+  ): Promise<{ success: boolean }> {
     return apiRequest("/follow", {
       method: "POST",
       body: JSON.stringify({ followerId, followingId }),
     });
   },
 
-  async unfollow(followerId: string, followingId: string): Promise<{ success: boolean }> {
-    return apiRequest(`/follow?followerId=${followerId}&followingId=${followingId}`, {
-      method: "DELETE",
-    });
+  async unfollow(
+    followerId: string,
+    followingId: string
+  ): Promise<{ success: boolean }> {
+    return apiRequest(
+      `/follow?followerId=${followerId}&followingId=${followingId}`,
+      {
+        method: "DELETE",
+      }
+    );
   },
 
   async getFollowData(
