@@ -228,8 +228,7 @@ export default function DiscoverPage() {
           </h1>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 text-sm text-foreground/70">
-            <p className="md:hidden">Swipe to interact</p>
-            <p className="hidden md:block">Use buttons below or arrow keys</p>
+            <p className="">Swipe to interact</p>
           </div>
         </div>
 
