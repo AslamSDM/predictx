@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy:
-          status === "expired" ? { expiresAt: "desc" } : { expiresAt: "desc" }, // Show recently expired first for expired status
+          status === "expired" ? { expiresAt: "desc" } : { expiresAt: "asc" }, // Show recently expired first for expired status
         take: limit,
         skip: offset,
       }),
