@@ -223,7 +223,7 @@ export default function SwipeCard({
               <div className="absolute bottom-5 right-4 z-10 ">
                 <button
                   onClick={(e) => {
-                    router.push(`/profile/${prediction.creator.username}`);
+                    router.push(`/profile/${prediction.creator.walletAddress}`);
                   }}
                   className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group touch-manipulation"
                 >
