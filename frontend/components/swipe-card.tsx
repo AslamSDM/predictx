@@ -99,7 +99,11 @@ export default function SwipeCard({
 
     if (days > 0) return `${days}d ${hours % 24}h`;
     if (hours > 0) return `${hours}h`;
-    return "Expiring soon";
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    if (minutes > 0) return `${minutes}m`;
+    if (seconds > 0) return `${seconds}s`;
+    return "Expired";
   };
 
   const formatExpiryDate = (expiresAt: Date | string) => {
