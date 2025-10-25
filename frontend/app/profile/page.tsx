@@ -111,31 +111,33 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* Profile Header */}
-        <div className="bg-gradient-to-br from-primary/10 to-accent/30 rounded-2xl p-8 mb-8 border border-border">
-          <div className="flex items-center gap-6">
+        <div className="bg-gradient-to-br from-primary/10 to-accent/30 rounded-2xl p-4 md:p-8 mb-6 md:mb-8 border border-border">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-6">
             {user.avatar ? (
               <Image
                 src={user.avatar}
                 alt={user.username || "User avatar"}
                 width={96}
                 height={96}
-                className="rounded-full border-4 border-primary shadow-lg"
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-primary shadow-lg"
                 unoptimized
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center border-4 border-primary shadow-lg">
-                <Target className="w-12 h-12 text-primary" />
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/20 flex items-center justify-center border-4 border-primary shadow-lg">
+                <Target className="w-10 h-10 md:w-12 md:h-12 text-primary" />
               </div>
             )}
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{user.username}</h1>
-              <p className="text-sm font-mono text-muted-foreground mb-4">
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+                {user.username}
+              </h1>
+              <p className="text-xs sm:text-sm font-mono text-muted-foreground mb-4">
                 {user.walletAddress.slice(0, 10)}...
                 {user.walletAddress.slice(-8)}
               </p>
-              <div className="flex gap-6">
+              <div className="grid grid-cols-2 sm:flex gap-4 sm:gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     {predictions.length}
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -143,7 +145,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     {bets.length}
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -154,7 +156,7 @@ export default function ProfilePage() {
                   onClick={() => setShowFollowModal("followers")}
                   className="text-center hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     {followData.followersCount}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
@@ -166,7 +168,7 @@ export default function ProfilePage() {
                   onClick={() => setShowFollowModal("following")}
                   className="text-center hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                     {followData.followingCount}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
@@ -174,24 +176,6 @@ export default function ProfilePage() {
                     Following
                   </div>
                 </button>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
-                    $
-                    {formatAmount(
-                      bets.reduce(
-                        (sum, bet) =>
-                          sum +
-                          (typeof bet.amount === "number"
-                            ? bet.amount
-                            : parseFloat(bet.amount.toString())),
-                        0
-                      )
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Total Wagered
-                  </div>
-                </div>
               </div>
             </div>
           </div>

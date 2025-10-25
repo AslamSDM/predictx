@@ -306,28 +306,12 @@ export default function UserProfilePage() {
                 {user.walletAddress.slice(0, 10)}...
                 {user.walletAddress.slice(-8)}
               </p>
-              <div className="flex justify-center sm:justify-start gap-4 sm:gap-6">
-                <div className="text-center">
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
-                    {isLoadingData ? "-" : predictions.length}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Predictions
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
-                    {isLoadingData ? "-" : bets.length}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Bets Placed
-                  </div>
-                </div>
+              <div className="grid grid-cols-2 sm:flex gap-3 sm:gap-6">
                 <button
                   onClick={() => setShowFollowModal("followers")}
                   className="text-center hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
+                  <div className="text-base sm:text-lg md:text-xl font-bold text-primary">
                     {followData.followersCount}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
@@ -339,7 +323,7 @@ export default function UserProfilePage() {
                   onClick={() => setShowFollowModal("following")}
                   className="text-center hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
+                  <div className="text-base sm:text-lg md:text-xl font-bold text-primary">
                     {followData.followingCount}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
@@ -348,24 +332,18 @@ export default function UserProfilePage() {
                   </div>
                 </button>
                 <div className="text-center">
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
-                    $
-                    {isLoadingData
-                      ? "-"
-                      : formatAmount(
-                          bets.reduce(
-                            (sum, bet) =>
-                              sum +
-                              (typeof bet.amount === "number"
-                                ? bet.amount
-                                : parseFloat(bet.amount.toString())),
-                            0
-                          )
-                        )}
+                  <div className="text-base sm:text-lg md:text-xl font-bold text-primary">
+                    {isLoadingData ? "-" : predictions.length}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Total Wagered
+                    Predictions
                   </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-base sm:text-lg md:text-xl font-bold text-primary">
+                    {isLoadingData ? "-" : bets.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Bets</div>
                 </div>
               </div>
             </div>
