@@ -144,21 +144,51 @@ function Prediction({ data }: Props) {
     );
   }
 
-  const { getWallet } = useContract();
-  const { ready: readyAuth, authenticated } = usePrivy();
-  const { ready: readyWallets } = useWallets();
+  // Validate required data fields
+  try {
+    if (typeof data !== "object" || !data.id) {
+      throw new Error("Invalid prediction data structure");
+    }
+  } catch (error) {
+    console.error("Prediction data validation error:", error);
+    return (
+      <div className="bg-slate-950 text-white p-4 md:p-8 font-sans">
+        <div className="text-center p-8">
+          <p className="text-lg text-red-400">Invalid prediction data</p>
+        </div>
+      </div>
+    );
+  }
 
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [winningAddress, setWinningAddress] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [contractError, setContractError] = useState<string | null>(null);
 
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Initialize hooks with error handling
+  const { getWallet } = useContract();
+  const { ready: readyAuth, authenticated } = usePrivy();
+  const { ready: readyWallets } = useWallets();
   const { getWinningToken, getOutcome, redeemWinningTokens } = useContract();
 
   const predictionAddress = data?.address || null;
 
   useEffect(() => {
+    if (!isClient) return; // Prevent SSR issues
+
     if (readyAuth && readyWallets && authenticated && predictionAddress) {
       const getOutComeStatus = async () => {
         try {
+          if (!getOutcome || !getWinningToken) {
+            setContractError("Contract methods not available");
+            return;
+          }
+
           const predictionOutCome = await getOutcome(predictionAddress);
           setOutcome(predictionOutCome);
 
@@ -178,12 +208,14 @@ function Prediction({ data }: Props) {
         } catch (error) {
           console.error("Error fetching outcome status:", error);
           setOutcome(null);
+          setContractError(`Failed to fetch outcome: ${error}`);
         }
       };
 
       getOutComeStatus();
     }
   }, [
+    isClient,
     readyAuth,
     readyWallets,
     authenticated,
@@ -201,15 +233,25 @@ function Prediction({ data }: Props) {
   // const yesPercentage = totalPoolValue > 0 ? (yesPoolValue / totalPoolValue) * 100 : 0;
   const isShort = data?.direction === "SHORT";
 
-  const formattedExpiresAt = data.expiresAt
-    ? new Intl.DateTimeFormat("en-US", {
+  const formattedExpiresAt = (() => {
+    try {
+      if (!data.expiresAt) return "No expiry date";
+
+      const date = new Date(data.expiresAt);
+      if (isNaN(date.getTime())) return "Invalid date";
+
+      return new Intl.DateTimeFormat("en-US", {
         month: "short",
         day: "numeric",
         hour: "numeric",
         minute: "numeric",
         hour12: true,
-      }).format(new Date(data.expiresAt))
-    : "No expiry date";
+      }).format(date);
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return "Date unavailable";
+    }
+  })();
 
   const handleRedeem = async () => {
     try {
@@ -221,9 +263,14 @@ function Prediction({ data }: Props) {
         console.error("No prediction address available");
         return;
       }
+      if (!redeemWinningTokens) {
+        console.error("Redeem function not available");
+        return;
+      }
       await redeemWinningTokens(predictionAddress, winningAddress);
     } catch (error) {
       console.error("Error redeeming tokens:", error);
+      setContractError(`Redemption failed: ${error}`);
     }
   };
 
@@ -309,104 +356,134 @@ function Prediction({ data }: Props) {
     }
   };
 
-  return (
-    <main className="bg-slate-950 text-white p-4 md:p-8 font-sans">
-      {/* Header Section */}
-      <header className="mb-8">
-        {data.tradeImage && (
-          <img
-            src={data.tradeImage}
-            alt={data.title}
-            className="w-full h-auto max-h-[400px] object-cover rounded-xl mb-6 border-2 border-slate-800"
-          />
-        )}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <span className="text-sm text-slate-400 font-mono">
-              {data.symbol || "Unknown Symbol"}
-            </span>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-50">
-              {data.title || "Untitled Prediction"}
-            </h1>
-            <p className="text-slate-400 mt-2 max-w-3xl">
-              {data.description || "No description available"}
-            </p>
+  try {
+    return (
+      <main className="bg-slate-950 text-white p-4 md:p-8 font-sans">
+        {/* Header Section */}
+        <header className="mb-8">
+          {data.tradeImage && (
+            <img
+              src={data.tradeImage}
+              alt={data.title || "Trade image"}
+              className="w-full h-auto max-h-[400px] object-cover rounded-xl mb-6 border-2 border-slate-800"
+              onError={(e) => {
+                console.error("Image load error:", e);
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          )}
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div>
+              <span className="text-sm text-slate-400 font-mono">
+                {data.symbol || "Unknown Symbol"}
+              </span>
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-50">
+                {data.title || "Untitled Prediction"}
+              </h1>
+              <p className="text-slate-400 mt-2 max-w-3xl">
+                {data.description || "No description available"}
+              </p>
+            </div>
+            <div
+              className={cn(
+                "flex items-center gap-2 text-lg font-bold px-4 py-2 rounded-full w-fit mt-4 md:mt-0",
+                isShort
+                  ? "bg-red-500/10 text-red-400"
+                  : "bg-green-500/10 text-green-400"
+              )}
+            >
+              {isShort ? (
+                <ArrowDown className="h-5 w-5" />
+              ) : (
+                <ArrowUp className="h-5 w-5" />
+              )}
+              <span>{data.direction || "Unknown"}</span>
+            </div>
           </div>
-          <div
-            className={cn(
-              "flex items-center gap-2 text-lg font-bold px-4 py-2 rounded-full w-fit mt-4 md:mt-0",
-              isShort
-                ? "bg-red-500/10 text-red-400"
-                : "bg-green-500/10 text-green-400"
-            )}
-          >
-            {isShort ? (
-              <ArrowDown className="h-5 w-5" />
-            ) : (
-              <ArrowUp className="h-5 w-5" />
-            )}
-            <span>{data.direction}</span>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 gap-8">
-        {/* data Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-slate-100">Prediction Details</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-slate-400">Entry Price</span>
-              <span className="text-2xl font-bold text-slate-50">
-                {data.entryPrice || "N/A"}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1 p-4 rounded-lg bg-cyan-500/10 border-2 border-cyan-500">
-              <span className="text-sm text-cyan-300">Target Price (TP)</span>
-              <span className="text-2xl font-bold text-cyan-400">
-                {data.targetPrice || "N/A"}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-slate-400">Expires At</span>
-              <span className="text-2xl font-bold text-amber-400">
-                {formattedExpiresAt}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-slate-400">Created By</span>
-              <span className="text-lg font-mono bg-slate-700 px-3 py-1 rounded w-fit mt-1 text-slate-200">
-                {data.creatorId || "Unknown"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Outcome Section */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-slate-100">Prediction Outcome</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {readyWallets && renderOutcome()}
-            {!readyWallets && (
-              <div className="flex justify-center text-[#797979]">
-                Connect Wallet to see outcome
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 gap-8">
+          {/* data Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-slate-100">
+                Prediction Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Entry Price</span>
+                <span className="text-2xl font-bold text-slate-50">
+                  {data.entryPrice || "N/A"}
+                </span>
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              <div className="flex flex-col gap-1 p-4 rounded-lg bg-cyan-500/10 border-2 border-cyan-500">
+                <span className="text-sm text-cyan-300">Target Price (TP)</span>
+                <span className="text-2xl font-bold text-cyan-400">
+                  {data.targetPrice || "N/A"}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Expires At</span>
+                <span className="text-2xl font-bold text-amber-400">
+                  {formattedExpiresAt}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Created By</span>
+                <span className="text-lg font-mono bg-slate-700 px-3 py-1 rounded w-fit mt-1 text-slate-200">
+                  {data.creatorId || "Unknown"}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Outcome Section */}
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-slate-100">
+                Prediction Outcome
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {contractError && (
+                <div className="text-center p-4 mb-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 text-sm">{contractError}</p>
+                </div>
+              )}
+              {!isClient ? (
+                <div className="flex justify-center text-[#797979]">
+                  Loading...
+                </div>
+              ) : readyWallets ? (
+                renderOutcome()
+              ) : (
+                <div className="flex justify-center text-[#797979]">
+                  Connect Wallet to see outcome
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  } catch (renderError) {
+    console.error("Prediction component render error:", renderError);
+    return (
+      <div className="bg-slate-950 text-white p-4 md:p-8 font-sans">
+        <div className="text-center p-8">
+          <p className="text-lg text-red-400">Failed to render prediction</p>
+          <p className="text-sm text-slate-400 mt-2">Please refresh the page</p>
+        </div>
       </div>
-    </main>
-  );
+    );
+  }
 }
 
 export default Prediction;
