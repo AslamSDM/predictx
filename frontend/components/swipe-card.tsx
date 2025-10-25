@@ -169,6 +169,32 @@ export default function SwipeCard({
 
         {/* Card Content */}
         <div className="w-full h-full flex flex-col">
+          <div className="absolute top-4 left-4 z-10 ">
+            <button
+              onClick={(e) => {
+                router.push(`/profile/${prediction.creator.walletAddress}`);
+              }}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer group touch-manipulation"
+            >
+              {prediction.creator.avatar && (
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                  <img
+                    src={prediction.creator.avatar}
+                    alt={"Creator"}
+                    width={20}
+                    height={20}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="flex-1 text-background text-xs text-left">
+                <div className="text-xs ">Created by</div>
+                <div className="font-medium group-hover:underline">
+                  @{prediction.creator.username || "Anonymous"}
+                </div>
+              </div>
+            </button>
+          </div>
           {/* Trade Image */}
           {prediction.tradeImage && (
             <div
@@ -237,34 +263,6 @@ export default function SwipeCard({
                   aria-label="Open chat"
                 >
                   <MessageCircle className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="absolute bottom-5 right-4 z-10 ">
-                <button
-                  onClick={(e) => {
-                    router.push(`/profile/${prediction.creator.walletAddress}`);
-                  }}
-                  className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group touch-manipulation"
-                >
-                  {prediction.creator.avatar && (
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                      <img
-                        src={prediction.creator.avatar}
-                        alt={"Creator"}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="text-xs text-muted-foreground">
-                      Created by
-                    </div>
-                    <div className="font-medium group-hover:underline">
-                      @{prediction.creator.username || "Anonymous"}
-                    </div>
-                  </div>
                 </button>
               </div>
             </>
