@@ -146,13 +146,13 @@ export default function UserProfilePage() {
   // Fetch random users when user is not found
   const fetchRandomUsers = async () => {
     try {
-      const response = await fetch('/api/users?limit=6');
+      const response = await fetch("/api/users?limit=6");
       if (response.ok) {
         const data = await response.json();
         setSuggestedUsers(data.users || data);
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
     }
   };
 
@@ -237,7 +237,7 @@ export default function UserProfilePage() {
                         {profileUser.walletAddress.slice(-4)}
                       </p>
                     </div>
-                    
+
                     <div className="space-y-2 text-center">
                       <div className="text-sm text-muted-foreground">
                         Member since {formatDate(profileUser.createdAt)}
@@ -415,22 +415,24 @@ export default function UserProfilePage() {
               predictions.map((prediction) => (
                 <div
                   key={prediction.id}
-                  className="bg-card rounded-xl border border-border p-6 hover:border-primary transition-colors cursor-pointer"
+                  className="bg-card rounded-xl border border-border p-3 sm:p-6 hover:border-primary transition-colors cursor-pointer"
                   onClick={() => router.push(`/discover?id=${prediction.id}`)}
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
                     {prediction.tradeImage && (
-                      <Image
-                        src={prediction.tradeImage}
-                        alt={prediction.title}
-                        width={120}
-                        height={80}
-                        className="rounded-lg object-cover"
-                        unoptimized
-                      />
+                      <div className="w-full sm:w-auto flex-shrink-0">
+                        <Image
+                          src={prediction.tradeImage}
+                          alt={prediction.title}
+                          width={120}
+                          height={80}
+                          className="w-full sm:w-[120px] h-20 rounded-lg object-cover"
+                          unoptimized
+                        />
+                      </div>
                     )}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         {prediction.direction === "LONG" ? (
                           <TrendingUp className="w-4 h-4 text-green-500" />
                         ) : (
@@ -449,7 +451,7 @@ export default function UserProfilePage() {
                           {prediction.direction}
                         </span>
                         <span
-                          className={`ml-auto text-xs px-2 py-1 rounded ${
+                          className={`ml-auto text-xs px-2 py-1 rounded whitespace-nowrap ${
                             prediction.status === "ACTIVE"
                               ? "bg-primary/20 text-primary"
                               : prediction.status === "RESOLVED_YES" ||
@@ -461,13 +463,13 @@ export default function UserProfilePage() {
                           {prediction.status}
                         </span>
                       </div>
-                      <h3 className="text-lg font-bold mb-2">
+                      <h3 className="text-base sm:text-lg font-bold mb-2">
                         {prediction.title}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                         {prediction.description}
                       </p>
-                      <div className="flex items-center gap-4 text-xs">
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs">
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-3 h-3" />
                           <span>
@@ -500,12 +502,12 @@ export default function UserProfilePage() {
               bets.map((bet) => (
                 <div
                   key={bet.id}
-                  className="bg-card rounded-xl border border-border p-6 hover:border-primary transition-colors"
+                  className="bg-card rounded-xl border border-border p-3 sm:p-6 hover:border-primary transition-colors"
                 >
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`px-3 py-1 rounded-full font-bold ${
+                        className={`px-3 py-1 rounded-full font-bold text-sm ${
                           bet.position === "YES"
                             ? "bg-green-500/20 text-green-500"
                             : "bg-red-500/20 text-red-500"
@@ -513,7 +515,7 @@ export default function UserProfilePage() {
                       >
                         {bet.position}
                       </div>
-                      <div className="text-2xl font-bold">
+                      <div className="text-xl sm:text-2xl font-bold">
                         ${formatAmount(bet.amount)}
                       </div>
                     </div>
@@ -523,7 +525,7 @@ export default function UserProfilePage() {
                   </div>
                   {bet.prediction && (
                     <div className="pt-3 border-t border-border">
-                      <p className="text-sm font-medium mb-1">
+                      <p className="text-sm font-medium mb-1 line-clamp-2">
                         {bet.prediction.title}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">

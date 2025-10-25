@@ -13,6 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   MessageCircle,
+  X,
+  ZoomIn,
 } from "lucide-react";
 import type { PredictionWithRelations } from "@/lib/types";
 import Link from "next/link";
@@ -42,6 +44,7 @@ export default function SwipeCard({
   const [exitX, setExitX] = useState(0);
   const [exitY, setExitY] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
   const router = useRouter();
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
@@ -164,12 +167,21 @@ export default function SwipeCard({
         <div className="w-full h-full flex flex-col">
           {/* Trade Image */}
           {prediction.tradeImage && (
-            <div className="relative flex-shrink-0 bg-gray-900 min-h-[250px] max-h-[40vh] md:max-h-[350px]">
+            <div
+              className="relative flex-shrink-0 bg-gray-900 min-h-[200px] max-h-[300px] cursor-pointer group"
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowImageModal(true);
+              }}
+            >
               <Image
                 src={prediction.tradeImage}
                 alt={prediction.title}
                 fill
-                className="object-cover md:object-contain"
+                className="object-cover md:object-contain transition-all group-hover:scale-105"
                 priority
                 sizes="(max-width: 768px) 100vw, 600px"
                 unoptimized
@@ -177,6 +189,10 @@ export default function SwipeCard({
               {/* Image overlay label */}
               <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white font-medium z-10">
                 📊 Trade Chart
+              </div>
+              {/* Zoom indicator */}
+              <div className="absolute top-2 left-4 bg-black/70 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <ZoomIn className="w-4 h-4 text-white" />
               </div>
             </div>
           )}
@@ -375,6 +391,44 @@ export default function SwipeCard({
           {/* Swipe Instructions */}
         </div>
       </div>
+
+      {/* Image Modal */}
+      {showImageModal && prediction.tradeImage && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+          <div className="relative max-w-4xl max-h-full w-full h-full flex items-center justify-center">
+            {/* Close button */}
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-4 right-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white p-2 rounded-full transition-all z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Image */}
+            <div className="relative w-full h-full">
+              <Image
+                src={prediction.tradeImage}
+                alt={prediction.title}
+                fill
+                className="object-contain"
+                priority
+                sizes="100vw"
+                unoptimized
+              />
+            </div>
+
+            {/* Image info */}
+            <div className="absolute bottom-4 left-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg p-4">
+              <h3 className="text-white font-bold text-lg mb-1">
+                {prediction.title}
+              </h3>
+              <p className="text-white/80 text-sm">
+                {prediction.symbol} - {prediction.direction}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

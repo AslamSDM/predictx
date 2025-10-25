@@ -96,6 +96,11 @@ export async function GET(request: NextRequest) {
       whereClause.expiresAt = {
         lt: new Date(), // Expired = expiry date is less than now
       };
+    } else if (status === "ACTIVE") {
+      whereClause.status = "ACTIVE";
+      whereClause.expiresAt = {
+        gt: new Date(), // Active = not expired yet
+      };
     } else if (status) {
       whereClause.status = status as any;
     }
@@ -119,7 +124,7 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy:
-          status === "expired" ? { expiresAt: "desc" } : { expiresAt: "asc" }, // Show recently expired first for expired status
+          status === "expired" ? { expiresAt: "desc" } : { expiresAt: "desc" }, // Show recently expired first for expired status
         take: limit,
         skip: offset,
       }),
