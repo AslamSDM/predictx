@@ -23,7 +23,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         appearance: {
           theme: "dark",
           accentColor: "#0EA5E9",
-          logo: "/icons/icon-192x192.png",
+          logo: "/app-icon.svg",
         },
         loginMethods: ["email", "google"],
         defaultChain: sepolia,

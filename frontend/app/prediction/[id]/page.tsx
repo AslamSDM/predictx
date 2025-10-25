@@ -3,34 +3,34 @@ import { prisma } from "@/lib/prisma";
 import { PredictionStatus } from "@prisma/client";
 
 type PaperPageProps = {
-    params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 };
 
 export default async function ExamPage({ params }: PaperPageProps) {
-    const { id: predictionId } = await params;
+  const { id: predictionId } = await params;
 
-    const predictionData = await prisma.prediction.findUnique({
-        where: {
-            id: predictionId
-        }
-    });
+  const predictionData = await prisma.prediction.findUnique({
+    where: {
+      id: predictionId,
+    },
+  });
 
-    if (!predictionData) {
-        return <>No such prediction</>
-    }
+  if (!predictionData) {
+    return <>No such prediction</>;
+  }
 
-    const serializedPrediction = {
-        ...predictionData,
-        targetPrice: predictionData.targetPrice!.toString(),
-        entryPrice: predictionData.entryPrice!.toString(),
-        totalPool: predictionData.totalPool.toString(),
-        yesPool: predictionData.yesPool.toString(),
-        noPool: predictionData.noPool.toString(),
-    };
+  const serializedPrediction = {
+    ...predictionData,
+    targetPrice: predictionData.targetPrice?.toString() || "0",
+    entryPrice: predictionData.entryPrice?.toString() || "0",
+    totalPool: predictionData.totalPool?.toString() || "0",
+    yesPool: predictionData.yesPool?.toString() || "0",
+    noPool: predictionData.noPool?.toString() || "0",
+  };
 
-    return (
-        <>
-            <Prediction data={serializedPrediction} />
-        </>
-    )
+  return (
+    <>
+      <Prediction data={serializedPrediction} />
+    </>
+  );
 }
