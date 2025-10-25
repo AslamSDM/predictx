@@ -202,55 +202,53 @@ export default function SwipeCard({
           {/* Info Section */}
           <div className="flex-1 p-4 md:p-6 flex flex-col min-h-0 overflow-y-auto relative">
             {/* Chat Button (when no image) */}
-            {!prediction.tradeImage && onChatClick && (
-              <>
-                <div
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className="absolute top-4 right-4 z-10 "
+            <>
+              <div
+                onPointerDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="absolute top-4 right-4 z-10 "
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChatClick(prediction);
+                  }}
+                  className="bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all active:scale-95 shadow-lg cursor-pointer touch-manipulation"
+                  aria-label="Open chat"
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChatClick(prediction);
-                    }}
-                    className="bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all active:scale-95 shadow-lg cursor-pointer touch-manipulation"
-                    aria-label="Open chat"
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="absolute bottom-5 right-4 z-10 ">
-                  <button
-                    onClick={(e) => {
-                      router.push(`/profile/${prediction.creator.username}`);
-                    }}
-                    className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group touch-manipulation"
-                  >
-                    {prediction.creator.avatar && (
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                        <Image
-                          src={prediction.creator.avatar}
-                          alt={"Creator"}
-                          width={40}
-                          height={40}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="text-xs text-muted-foreground">
-                        Created by
-                      </div>
-                      <div className="font-medium group-hover:underline">
-                        @{prediction.creator.username || "Anonymous"}
-                      </div>
+                  <MessageCircle className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="absolute bottom-5 right-4 z-10 ">
+                <button
+                  onClick={(e) => {
+                    router.push(`/profile/${prediction.creator.username}`);
+                  }}
+                  className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group touch-manipulation"
+                >
+                  {prediction.creator.avatar && (
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                      <Image
+                        src={prediction.creator.avatar}
+                        alt={"Creator"}
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                  </button>
-                </div>
-              </>
-            )}
+                  )}
+                  <div className="flex-1">
+                    <div className="text-xs text-muted-foreground">
+                      Created by
+                    </div>
+                    <div className="font-medium group-hover:underline">
+                      @{prediction.creator.username || "Anonymous"}
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </>
             {/* Header */}
             <div className="flex items-center gap-2 mb-3">
               {prediction.direction === "LONG" ? (
