@@ -249,7 +249,7 @@ export default function SwipeCard({
                 >
                   {prediction.creator.avatar && (
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                      <Image
+                      <img
                         src={prediction.creator.avatar}
                         alt={"Creator"}
                         width={40}
