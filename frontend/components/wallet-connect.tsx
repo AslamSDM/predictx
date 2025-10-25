@@ -85,7 +85,14 @@ export default function WalletConnect() {
             </button>
           </>
         ) : (
-          <></>
+          <button
+            onClick={() => setShowLoginModal(true)}
+            className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2 glow font-medium"
+            aria-label="Login with Email or Telegram"
+          >
+            <Mail className="w-4 h-4" />
+            <span>Login</span>
+          </button>
         )}
       </div>
 
