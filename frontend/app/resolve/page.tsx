@@ -426,103 +426,101 @@ export default function ResolvePage() {
                 key={prediction.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-card rounded-xl border border-border p-6 hover:border-primary transition-colors"
+                className="bg-card rounded-xl border border-border p-3 sm:p-6 hover:border-primary transition-colors"
               >
-                <div className="flex gap-6">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
                   {/* Trade Image */}
                   {prediction.tradeImage && (
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 w-full sm:w-auto">
                       <Image
                         src={prediction.tradeImage}
                         alt={prediction.title}
                         width={200}
                         height={150}
-                        className="rounded-lg object-cover"
+                        className="w-full sm:w-[200px] h-40 sm:h-[150px] rounded-lg object-cover"
                         unoptimized
                       />
                     </div>
                   )}
 
                   {/* Content */}
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          {prediction.direction === "LONG" ? (
-                            <TrendingUp className="w-5 h-5 text-green-500" />
-                          ) : (
-                            <TrendingDown className="w-5 h-5 text-red-500" />
-                          )}
-                          <span className="text-sm font-semibold text-muted-foreground">
-                            {prediction.symbol}
-                          </span>
-                          <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded ${
-                              prediction.direction === "LONG"
-                                ? "bg-green-500/20 text-green-500"
-                                : "bg-red-500/20 text-red-500"
-                            }`}
-                          >
-                            {prediction.direction}
-                          </span>
-                          <span className="text-xs px-2 py-1 rounded bg-orange-500/20 text-orange-500 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            Expired {getTimeExpired(prediction.expiresAt)}
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-bold mb-2">
-                          {prediction.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                          {prediction.description}
-                        </p>
+                    <div className="mb-3">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        {prediction.direction === "LONG" ? (
+                          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                        )}
+                        <span className="text-xs sm:text-sm font-semibold text-muted-foreground">
+                          {prediction.symbol}
+                        </span>
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap ${
+                            prediction.direction === "LONG"
+                              ? "bg-green-500/20 text-green-500"
+                              : "bg-red-500/20 text-red-500"
+                          }`}
+                        >
+                          {prediction.direction}
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded bg-orange-500/20 text-orange-500 flex items-center gap-1 whitespace-nowrap">
+                          <Clock className="w-3 h-3" />
+                          Expired {getTimeExpired(prediction.expiresAt)}
+                        </span>
                       </div>
+                      <h3 className="text-lg sm:text-xl font-bold mb-2">
+                        {prediction.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                        {prediction.description}
+                      </p>
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div className="bg-background/50 rounded-lg p-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4">
+                      <div className="bg-background/50 rounded-lg p-2 sm:p-3">
                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                           <Target className="w-3 h-3" />
                           Entry
                         </div>
-                        <div className="text-sm font-bold">
+                        <div className="text-xs sm:text-sm font-bold">
                           ${formatAmount(prediction.entryPrice)}
                         </div>
                       </div>
-                      <div className="bg-background/50 rounded-lg p-3">
+                      <div className="bg-background/50 rounded-lg p-2 sm:p-3">
                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                           <Target className="w-3 h-3" />
                           Target
                         </div>
-                        <div className="text-sm font-bold text-primary">
+                        <div className="text-xs sm:text-sm font-bold text-primary">
                           ${formatAmount(prediction.targetPrice)}
                         </div>
                       </div>
-                      <div className="bg-background/50 rounded-lg p-3">
+                      <div className="bg-background/50 rounded-lg p-2 sm:p-3">
                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                           <DollarSign className="w-3 h-3" />
                           Total Pool
                         </div>
-                        <div className="text-sm font-bold">
+                        <div className="text-xs sm:text-sm font-bold">
                           ${formatAmount(prediction.totalPool)}
                         </div>
                       </div>
-                      <div className="bg-green-500/10 rounded-lg p-3">
+                      <div className="bg-green-500/10 rounded-lg p-2 sm:p-3 col-span-2 lg:col-span-1">
                         <div className="text-xs text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
                           <CheckCircle className="w-3 h-3" />
                           Your Fee (2%)
                         </div>
-                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                        <div className="text-xs sm:text-sm font-bold text-green-600 dark:text-green-400">
                           ${calculateResolutionFee(prediction.totalPool)}
                         </div>
                       </div>
                     </div>
 
                     {/* Pool Distribution */}
-                    <div className="bg-background/50 rounded-lg p-3 mb-4">
-                      <div className="flex items-center justify-between text-xs mb-2">
+                    <div className="bg-background/50 rounded-lg p-2 sm:p-3 mb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 text-xs mb-2">
                         <span className="text-muted-foreground">
                           Pool Distribution
                         </span>
@@ -531,15 +529,15 @@ export default function ResolvePage() {
                         </span>
                       </div>
                       <div className="flex gap-2">
-                        <div className="flex-1 bg-green-500/20 text-green-600 dark:text-green-400 rounded px-3 py-2 text-center">
+                        <div className="flex-1 bg-green-500/20 text-green-600 dark:text-green-400 rounded px-2 sm:px-3 py-1 sm:py-2 text-center">
                           <div className="text-xs font-medium">YES</div>
-                          <div className="text-sm font-bold">
+                          <div className="text-xs sm:text-sm font-bold">
                             ${formatAmount(prediction.yesPool)}
                           </div>
                         </div>
-                        <div className="flex-1 bg-red-500/20 text-red-600 dark:text-red-400 rounded px-3 py-2 text-center">
+                        <div className="flex-1 bg-red-500/20 text-red-600 dark:text-red-400 rounded px-2 sm:px-3 py-1 sm:py-2 text-center">
                           <div className="text-xs font-medium">NO</div>
-                          <div className="text-sm font-bold">
+                          <div className="text-xs sm:text-sm font-bold">
                             ${formatAmount(prediction.noPool)}
                           </div>
                         </div>
@@ -555,18 +553,25 @@ export default function ResolvePage() {
                     <button
                       onClick={() => handleResolve(prediction)}
                       disabled={!authenticated || resolvingId === prediction.id}
-                      className="w-full px-6 py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                     >
                       {resolvingId === prediction.id ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Resolving...
+                          <span className="hidden sm:inline">Resolving...</span>
+                          <span className="sm:hidden">Resolving...</span>
                         </>
                       ) : (
                         <>
-                          <CheckCircle className="w-5 h-5" />
-                          Resolve & Earn $
-                          {calculateResolutionFee(prediction.totalPool)}
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <span className="hidden sm:inline">
+                            Resolve & Earn $
+                            {calculateResolutionFee(prediction.totalPool)}
+                          </span>
+                          <span className="sm:hidden">
+                            Resolve ($
+                            {calculateResolutionFee(prediction.totalPool)})
+                          </span>
                         </>
                       )}
                     </button>
