@@ -6,7 +6,11 @@ import { useUserStore } from "@/lib/store";
 import { getHighAndLow } from "@/lib/hyperliquid";
 import { useContract } from "@/lib/hooks/useContract";
 import type { PythPriceFeed } from "@/lib/types/pyth";
-import { extractPriceValue, extractPriceConfidence, extractPublishTime } from "@/lib/types/pyth";
+import {
+  extractPriceValue,
+  extractPriceConfidence,
+  extractPublishTime,
+} from "@/lib/types/pyth";
 import {
   Clock,
   TrendingUp,
@@ -26,7 +30,12 @@ export default function ResolvePage() {
   const [predictions, setPredictions] = useState<PredictionWithRelations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const { resolvePrediction,getOutcome, getEndsAndStartTimes, isLoading: isContractLoading } = useContract();
+  const {
+    resolvePrediction,
+    getOutcome,
+    getEndsAndStartTimes,
+    isLoading: isContractLoading,
+  } = useContract();
 
   // Fetch expired predictions that need resolution
   useEffect(() => {
@@ -40,7 +49,12 @@ export default function ResolvePage() {
   const fetchExpiredPredictions = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/predictions?status=expired");
+      const res = await fetch("/api/predictions?status=expired", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setPredictions(data.predictions || data);
@@ -61,13 +75,13 @@ export default function ResolvePage() {
     const feedIdMap: Record<string, string> = {
       "1INCHUSD":
         "0x63f341689d98a12ef60a5cff1d7f85c70a9e17bf1575f0e7c0b2512d48b1c8b3",
-      "AAVEUSD":
+      AAVEUSD:
         "0x2b9ab1e972a281585084148ba1389800799bd4be63b957507db1349314e47445",
-      "BITCOINUSD":
+      BITCOINUSD:
         "0xc5e0e0c92116c0c070a242b254270441a6201af680a33e0381561c59db3266c9",
-      "BNBUSD":
+      BNBUSD:
         "0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f",
-      "ETHUSD":
+      ETHUSD:
         "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
     };
 
@@ -75,10 +89,16 @@ export default function ResolvePage() {
   };
 
   // Helper function to fetch price data from Hermes API
-  const fetchPriceFromHermes = async (feedId: string, timestamp?: number,current:boolean=false): Promise<PythPriceFeed> => {
+  const fetchPriceFromHermes = async (
+    feedId: string,
+    timestamp?: number,
+    current: boolean = false
+  ): Promise<PythPriceFeed> => {
     try {
-      // Use current timestamp if not provided      
-      const hermesUrl = current ? `https://hermes.pyth.network/v2/updates/price/latest?ids%5B%5D=${feedId}&encoding=hex&parsed=true` : `https://hermes.pyth.network/v2/updates/price/${timestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
+      // Use current timestamp if not provided
+      const hermesUrl = current
+        ? `https://hermes.pyth.network/v2/updates/price/latest?ids%5B%5D=${feedId}&encoding=hex&parsed=true`
+        : `https://hermes.pyth.network/v2/updates/price/${timestamp}?ids%5B%5D=${feedId}&encoding=hex&parsed=true`;
 
       const response = await fetch(hermesUrl, {
         method: "GET",
@@ -108,11 +128,14 @@ export default function ResolvePage() {
 
     // Check if prediction is actually expired
     const now = Math.floor(Date.now() / 1000);
-    const expiryTime = Math.floor(new Date(prediction.expiresAt).getTime() / 1000);
-    
-    
+    const expiryTime = Math.floor(
+      new Date(prediction.expiresAt).getTime() / 1000
+    );
+
     if (now < expiryTime) {
-      alert("This prediction has not expired yet. Please wait until after the expiry time.");
+      alert(
+        "This prediction has not expired yet. Please wait until after the expiry time."
+      );
       return;
     }
 
@@ -134,9 +157,13 @@ export default function ResolvePage() {
       // Step 3: Fetch price data from Hermes API
       const [high, low] = await getHighAndLow({
         asset: symbol.replace("USD", ""),
-        interval: "1m", 
-        startTime: new Date(new Date(prediction.createdAt).getTime() + 70000).getTime(),
-        endTime: new Date(new Date(prediction.expiresAt).getTime() - 70000).getTime()
+        interval: "1m",
+        startTime: new Date(
+          new Date(prediction.createdAt).getTime() + 70000
+        ).getTime(),
+        endTime: new Date(
+          new Date(prediction.expiresAt).getTime() - 70000
+        ).getTime(),
       });
 
       let highPriceData: PythPriceFeed | null;
@@ -144,10 +171,16 @@ export default function ResolvePage() {
       let currentPriceData: PythPriceFeed | null;
       try {
         const currentTimestamp = Math.floor(Date.now() / 1000);
-        highPriceData = await fetchPriceFromHermes(feedId, Math.floor((high.timestamp || 0) / 1000));
-        lowPriceData = await fetchPriceFromHermes(feedId, Math.floor((low.timestamp || 0) / 1000));
+        highPriceData = await fetchPriceFromHermes(
+          feedId,
+          Math.floor((high.timestamp || 0) / 1000)
+        );
+        lowPriceData = await fetchPriceFromHermes(
+          feedId,
+          Math.floor((low.timestamp || 0) / 1000)
+        );
         currentPriceData = await fetchPriceFromHermes(feedId, currentTimestamp);
-        
+
         // Extract actual price values
         const highPrice = extractPriceValue(highPriceData);
         const lowPrice = extractPriceValue(lowPriceData);
@@ -174,9 +207,15 @@ export default function ResolvePage() {
       // Step 4: Call resolvePrediction which approves tokens and calls backend to resolve on-chain
       const outcome = await resolvePrediction({
         predictionAddress: prediction.address,
-        highPriceData: highPriceData?.binary.data[0] ? `0x${highPriceData.binary.data[0]}` : null,
-        lowPriceData: lowPriceData?.binary.data[0] ? `0x${lowPriceData.binary.data[0]}` : null,
-        currentPriceData: currentPriceData?.binary.data[0] ? `0x${currentPriceData.binary.data[0]}` : null
+        highPriceData: highPriceData?.binary.data[0]
+          ? `0x${highPriceData.binary.data[0]}`
+          : null,
+        lowPriceData: lowPriceData?.binary.data[0]
+          ? `0x${lowPriceData.binary.data[0]}`
+          : null,
+        currentPriceData: currentPriceData?.binary.data[0]
+          ? `0x${currentPriceData.binary.data[0]}`
+          : null,
       });
 
       // Step 5: Update database with resolved outcome
@@ -511,7 +550,6 @@ export default function ResolvePage() {
           </div>
         )}
       </div>
-
     </div>
   );
 }
