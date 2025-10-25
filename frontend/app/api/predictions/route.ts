@@ -118,7 +118,8 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: status === "expired" ? { expiresAt: "desc" } : { expiresAt: "asc" }, // Show recently expired first for expired status
+        orderBy:
+          status === "expired" ? { expiresAt: "desc" } : { expiresAt: "asc" }, // Show recently expired first for expired status
         take: limit,
         skip: offset,
       }),

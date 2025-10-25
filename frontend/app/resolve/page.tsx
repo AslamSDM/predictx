@@ -63,7 +63,7 @@ export default function ResolvePage() {
     try {
       const page = reset ? 0 : currentPage;
       const offset = page * itemsPerPage;
-      
+
       const res = await fetch(
         `/api/predictions?status=expired&limit=${itemsPerPage}&offset=${offset}`,
         {
@@ -73,18 +73,18 @@ export default function ResolvePage() {
           },
         }
       );
-      
+
       if (res.ok) {
         const data = await res.json();
         if (reset) {
           setPredictions(data.predictions || []);
         } else {
-          setPredictions(prev => [...prev, ...(data.predictions || [])]);
+          setPredictions((prev) => [...prev, ...(data.predictions || [])]);
         }
         setTotal(data.total || 0);
         setHasMore(data.hasMore || false);
         if (!reset) {
-          setCurrentPage(prev => prev + 1);
+          setCurrentPage((prev) => prev + 1);
         }
       }
     } catch (error) {
@@ -350,9 +350,7 @@ export default function ResolvePage() {
                 <p className="text-sm text-muted-foreground">
                   Pending Resolution
                 </p>
-                <p className="text-2xl font-bold text-primary">
-                  {total}
-                </p>
+                <p className="text-2xl font-bold text-primary">{total}</p>
               </div>
               <Clock className="w-8 h-8 text-primary opacity-50" />
             </div>
