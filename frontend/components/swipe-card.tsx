@@ -212,7 +212,7 @@ export default function SwipeCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onChatClick(prediction);
+                    onChatClick?.(prediction);
                   }}
                   className="bg-primary/90 backdrop-blur-sm hover:bg-primary text-primary-foreground p-2 rounded-full transition-all active:scale-95 shadow-lg cursor-pointer touch-manipulation"
                   aria-label="Open chat"
