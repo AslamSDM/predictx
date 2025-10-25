@@ -176,10 +176,6 @@ export default function SwipeCard({
               onPointerDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowImageModal(true);
-              }}
             >
               <Image
                 src={prediction.tradeImage}
@@ -190,14 +186,8 @@ export default function SwipeCard({
                 sizes="(max-width: 768px) 100vw, 600px"
                 unoptimized
               />
-              {/* Image overlay label */}
-              <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white font-medium z-10">
-                📊 Trade Chart
-              </div>
+
               {/* Zoom indicator */}
-              <div className="absolute top-2 left-4 bg-black/70 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                <ZoomIn className="w-4 h-4 text-white" />
-              </div>
             </div>
           )}
 
@@ -227,8 +217,17 @@ export default function SwipeCard({
                 onPointerDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
-                className="absolute top-4 right-4 z-10 "
+                className="absolute top-4 right-4 z-10 flex gap-4 items-center "
               >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowImageModal(true);
+                  }}
+                  aria-label="Open chat"
+                >
+                  <ZoomIn className=" text-primary/90" />
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
