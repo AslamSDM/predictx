@@ -120,7 +120,7 @@ export function useContract() {
         args: [wallet.address as `0x${string}`, PREDICTION_FACTORY_ADDRESS as `0x${string}`],
       });
 
-      if (allowance < parseEther("0.01")) {
+      if (allowance < parseEther("0.000000001")) {
         const approveHash = await walletClient.writeContract({
           address: STAKE_TOKEN_ADDRESS as `0x${string}`,
           abi: ERC20_ABI,
@@ -234,8 +234,7 @@ export function useContract() {
         TransactionType.APPROVE,
         11155111 // Sepolia chain ID
       );
-      await publicClient.waitForTransactionReceipt({ hash: approvePyUsdHash });
-
+      (await pyUSDApproveTracker).success()
       const initializeMarket = await walletClient.writeContract({
         address: PredictionContractAddressCreate2 as `0x${string}`,
         abi: PREDICTION_ABI,
@@ -248,7 +247,7 @@ export function useContract() {
         TransactionType.MARKET_INITIALIZATION,
         11155111 // Sepolia chain ID
       );
-      await publicClient.waitForTransactionReceipt({ hash: initializeMarket });
+      (await marketInitiTracker).success()
 
       setIsLoading(false);
       return [
@@ -285,7 +284,7 @@ export function useContract() {
       const amountWei = BigInt(params.amount * 1_000_000); // Convert to 6 decimal places
 
       // First, approve the prediction contract to spend tokens
-      const approveAmount = parseEther("1000");
+      const approveAmount = parseEther("1000000000");
 
       const allowance = await publicClient.readContract({
         address: STAKE_TOKEN_ADDRESS as `0x${string}`,
@@ -297,7 +296,7 @@ export function useContract() {
         ],
       });
 
-      if (allowance < parseEther("1")) {
+      if (allowance < parseEther("0.0000000001")) {
         const approveHash = await walletClient.writeContract({
           address: STAKE_TOKEN_ADDRESS as `0x${string}`,
           abi: ERC20_ABI,
@@ -377,17 +376,9 @@ export function useContract() {
       const publicClient = getPublicClient(provider);
 
       // Step 1: Approve stake tokens
-      const approveAmount = parseEther("1000");
+      const approveAmount = parseEther("10000000");
 
-      const allowance = await publicClient.readContract({
-        address: STAKE_TOKEN_ADDRESS as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: "allowance",
-        args: [
-          wallet.address as `0x${string}`,
-          params.predictionAddress as `0x${string}`,
-        ],
-      });
+
 
       const approvePyUsdHash = await walletClient.writeContract({
         address: STAKE_TOKEN_ADDRESS as `0x${string}`,
@@ -401,7 +392,6 @@ export function useContract() {
         TransactionType.RESOLVE_PREDICTION,
         11155111 // Sepolia chain ID
       );
-      await publicClient.waitForTransactionReceipt({ hash: approvePyUsdHash });
       (await pyUSDApproveTracker).success();
 
       // Step 2: Call backend API to resolve on-chain
@@ -563,7 +553,7 @@ export function useContract() {
           predictionAddress as `0x${string}`,
         ],
       });
-      if (allowance < parseEther("1")) {
+      if (allowance < parseEther("0.000001")) {
         const approveHash = await walletClient.writeContract({
           address: winningTokenAddress as `0x${string}`,
           abi: ERC20_ABI,
@@ -571,7 +561,13 @@ export function useContract() {
           args: [predictionAddress as `0x${string}`, parseEther("1000")],
           account: wallet.address as `0x${string}`,
         });
-        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        const approveTracker = trackTransaction(
+          approveHash,
+          TransactionType.APPROVE,
+          11155111 // Sepolia chain ID
+        );
+        (await approveTracker).success();
+
       }
       const redeemTxn = await walletClient.writeContract({
         address: predictionAddress as `0x${string}`,
@@ -580,6 +576,13 @@ export function useContract() {
         args: [balance],
         account: wallet.address as `0x${string}`,
       });
+
+      const claimWinning = trackTransaction(
+        redeemTxn,
+        TransactionType.CLAIM_WINNINGS,
+        11155111 // Sepolia chain ID
+      );
+      (await claimWinning).success();
 
       await publicClient.waitForTransactionReceipt({ hash: redeemTxn });
     } catch (err: any) {
