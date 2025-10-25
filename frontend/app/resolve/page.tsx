@@ -19,6 +19,7 @@ import {
   AlertCircle,
   CheckCircle,
   Target,
+  ChevronDown,
 } from "lucide-react";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -29,7 +30,12 @@ export default function ResolvePage() {
   const { user } = useUserStore();
   const [predictions, setPredictions] = useState<PredictionWithRelations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState(0);
+  const itemsPerPage = 10;
   const {
     resolvePrediction,
     getOutcome,
@@ -39,30 +45,53 @@ export default function ResolvePage() {
 
   // Fetch expired predictions that need resolution
   useEffect(() => {
-    fetchExpiredPredictions();
+    fetchExpiredPredictions(true);
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchExpiredPredictions, 30000);
+    // Refresh every 30 seconds (reset to first page)
+    const interval = setInterval(() => fetchExpiredPredictions(true), 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchExpiredPredictions = async () => {
-    setIsLoading(true);
+  const fetchExpiredPredictions = async (reset = false) => {
+    if (reset) {
+      setIsLoading(true);
+      setCurrentPage(0);
+    } else {
+      setIsLoadingMore(true);
+    }
+
     try {
-      const res = await fetch("/api/predictions?status=expired", {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-        },
-      });
+      const page = reset ? 0 : currentPage;
+      const offset = page * itemsPerPage;
+      
+      const res = await fetch(
+        `/api/predictions?status=expired&limit=${itemsPerPage}&offset=${offset}`,
+        {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+          },
+        }
+      );
+      
       if (res.ok) {
         const data = await res.json();
-        setPredictions(data.predictions || data);
+        if (reset) {
+          setPredictions(data.predictions || []);
+        } else {
+          setPredictions(prev => [...prev, ...(data.predictions || [])]);
+        }
+        setTotal(data.total || 0);
+        setHasMore(data.hasMore || false);
+        if (!reset) {
+          setCurrentPage(prev => prev + 1);
+        }
       }
     } catch (error) {
       console.error("Error fetching expired predictions:", error);
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -322,7 +351,7 @@ export default function ResolvePage() {
                   Pending Resolution
                 </p>
                 <p className="text-2xl font-bold text-primary">
-                  {predictions.length}
+                  {total}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-primary opacity-50" />
@@ -547,6 +576,34 @@ export default function ResolvePage() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {predictions.length > 0 && (
+          <div className="mt-8 text-center">
+            <div className="mb-4 text-sm text-muted-foreground">
+              Showing {predictions.length} of {total} expired predictions
+            </div>
+            {hasMore && (
+              <button
+                onClick={() => fetchExpiredPredictions(false)}
+                disabled={isLoadingMore}
+                className="px-6 py-3 bg-card border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mx-auto"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    Loading more...
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    Load More Predictions
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>
