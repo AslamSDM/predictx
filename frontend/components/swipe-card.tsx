@@ -210,7 +210,7 @@ export default function SwipeCard({
             </button>
           </div> */}
           {/* Info Section */}
-          <div className="flex-1 p-4 md:p-6 flex flex-col min-h-0 overflow-y-auto relative">
+          <div className="flex-1 p-4 md:p-6 flex flex-col min-h-0 overflow-y-auto relative ">
             {/* Chat Button (when no image) */}
             <>
               <div
@@ -369,7 +369,7 @@ export default function SwipeCard({
               </div>
             </div>
             {/* Pool Info */}
-            <div className="bg-background/30 rounded-lg p-3 mb-3">
+            <div className="bg-background/30 rounded-lg p-3 mb-6">
               <div className="flex items-center justify-between text-xs mb-2">
                 <span className="text-muted-foreground flex items-center gap-1">
                   <DollarSign className="w-3 h-3" />
